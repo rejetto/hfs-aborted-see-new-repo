@@ -1,0 +1,95 @@
+=== DOING
+backend: vfs manipulation
+
+=== FEASIBILITY
+distribution: how? size?
+    https://github.com/wearefractal/npkg
+system integration: an executable will accomplish some of the work and communicate with HFS possibly via socket  
+
+=== DESIGN
+- no GUI, only web
+- admin on different port, to eventually accept connection only in local
+- executable helper to get some features:
+    - tray icon for
+        - start/stop
+        - access administration
+        - notification
+    - shell context menu
+        - add files via right click
+    - Windows' service
+- webservices
+    - it should be possible to build an ajax-based webapp, like a straight template like for HFS 2.2
+        - both webservices and template engine
+        - does the webapp need a template engine at all or should it all be done via ajax?
+            - login
+            - folder list
+            - navigate folders (get folder by folder, or whole tree for speed?)
+            - search
+            - select & action (archive, delete, rename...)            
+
+=== FRONT END
+extjs + socket.io
+login (cookie based)
+
+switch on url resource type
+    case 'file': serve file
+    case 'link': redirect
+    case 'folder':
+        switch ($format)
+            case nothing: serve front-end web app, with this folder already selected
+            case 'tar': serve archive
+            case 'zip': serve archive
+            default: unknown
+
+http://superdit.com/2011/06/01/extjs-simple-file-browser/
+    
+=== VFS
+- able to
+    - add virtual items, (will override others with same name)
+    - add real items, (override) 
+    - renamed, (a real item with customName. Remember that an existance check is always done)
+    - deleted, (this make the item with same resource to be skipped)
+        these are not child nodes, but are the names are kept in an object of the folder
+    - various options set (like hidden, permission, log, counting, comment, realm, icon)
+- file node permissions by account (values: anyone, anonymous, any account, account list)
+    - NOT the old "access", it's just download+browse         
+    - visible (this will make this item appear or not in lists, but won't prevent download)
+        default: anyone
+    - browse (only folders: prevent display of items inside, but with a message, not as if the folder was empty [recursive])
+        default: anyone
+    - download/stream [recursive] 
+        default: anyone
+    - archive [recursive]
+        default: anyone
+    - upload (only folders [recursive])
+        default: no one
+    - delete [recursive]
+        default: no one
+- options and metadata
+    - log (allow logging of this item [recursive])
+        default: yes
+    - logMask (only folders [recursive])
+        default: *
+    - count as download [recursive]
+        default: yes
+    - count as download Mask (only folders [recursive])
+        default: *
+    - upload mask (only folders [recursive])
+        default: * 
+    - visibility mask (only folders [recursive])
+        default: *
+    - download mask (only folders [recursive])
+        default: *  
+    - default file mask (only folders [recursive])
+        default: index.htm*;default.html*
+    - ?(leave it to future versions) auto-hide empty folders (folders only)
+        default: no
+    - hide extension [recursive]
+        default: no                
+    - comment            
+    - icon
+    - ? message when not allowed
+- permissions and options have default values that are enforced when not assigned, to not clutter the stored data structure
+
+=== TO DO
+ensure the web apps are perfectly working offline

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8" />
+	<title>HFS 3 front end</title>
+    <link rel="stylesheet" type="text/css" href="/~/frontend.css" /> 
+
+	<!--[if lt IE 9 ]> <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script> <![endif]-->
+	<script src='/socket.io/socket.io.js'></script>
+    <script src='/~/jquery.js'></script> 
+    <script src='/~/extending.js'></script> 
+    <script src='/~/misc.js'></script> 
+	<script src='/~/frontend.js'></script>
+    <script src='/~/tpl.js'></script>
+    </head>
+<body>
+<h2>Folder <span id='folder'></span></h2>
+<div id='folder-info'></div>
+View mode <select id='mode'><option>tiles<option>list</select>
+<p>Order <select id='order'><option value='' selected>none<option value='label'>name<option>type<option>size</select>
+<ul id='items'></ul>
+</body>
+</html>
