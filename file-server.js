@@ -1,7 +1,6 @@
-require('./common');
 var http = require('http');
 var socket_io = require('socket.io');
-var serving = require('./serving');
+var serving = require('./lib/serving');
 
 exports.start = function(listenOn) {
     listeningOn = listenOn;
@@ -42,7 +41,6 @@ var io = socket_io.listen(srv);
 misc.setupSocketIO(io);
 io.sockets.on('connection', function(socket){
     socket.on('get list', function onGetList(data, cb){
-        dbg('get list');
         vfs.fromUrl(data.path, function(fnode) {
             getReplyForFolder(fnode, cb);  
         });
@@ -58,13 +56,14 @@ function getReplyForFolder(folder, cb) {
     folder.dir(function(items){
         assert(items, 'items');                
         // convert items to a simpler format
-        items.forEach(function(f,name){             
-            items[name] = { // we'll use short key names to save bandwidth on common fieldnames.
-                // type
-                t: f.itemKind.replace('virtual ',''), // this is a quick and dirty method to get value as file|folder|link
-                // size
-                s: f.stats.size,
-            };
+        items.forEach(function(f,name){
+            // we'll use short key names to save bandwidth on common fieldnames.
+            var it = items[name] = {};
+            // type
+            it.t = f.itemKind.replace('virtual ',''); // this is a quick and dirty method to get value as file|folder|link
+            // size
+            if (f.isOnDisk())
+                it.s = f.stats.size;
         });//forEach
 
         cb({items:items});    

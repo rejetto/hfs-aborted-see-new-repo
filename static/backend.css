@@ -1,5 +1,5 @@
 body { font:10pt verdana, arial, sans-serif; }
 a img { border:0; } /* conform IE */
-#vfs li { border:1px solid transparent; padding:0.1em 0.2em }
-#vfs li.selected { background:#ddf; border:1px solid #99f; }
+#vfs li { border:2px solid transparent; padding:0.1em 0.2em }
+#vfs li.selected { background:#ddf; border-color:#99f; }
 #vfs li.hovered { background:#eee; }

@@ -1,44 +1,78 @@
 var socket = io.connect(window.location.origin);
 
 $(function(){ // dom ready
-    $('#bind, #addFolder').attr({disabled:true});
+    vfsUpdateButtons();
     setupEventHandlers();
     socket.on('connect', function(){ // socket ready
-        showVFS();
+        reloadVFS();
     });
 });
 
-function getParentFromItem(it) {
-    $(it.element).parent().data('item');
-} // getParentFromItem
+/* display a dialog for input.
+    Currently just a wrapper of prompt().
+    Arguments:
+        text, callback
+*/ 
+function inputBox() {
+    var text, cb, a = arguments;
+    switch (typeof a[0]) {
+        case 'string':
+            text = a[0];
+            break;
+        default:
+            return false;
+    }        
+    switch (typeof a[1]) {
+        case 'function':
+            cb = a[1];
+            break;
+        default:
+            return false;
+    }
+    cb(prompt(text));
+} // inputBox
 
-function getURIfromItem(it) {
-    getParentFromItem(it);
-} // getURIfromItem
+function msgBox(message) { alert(message) }
+
+function itemBind() { 
+    var it = getFirstSelectedItem();
+    if (!it) return;
+    inputBox('Enter path', function(s){
+        if (!s) return;    
+        socket.emit('vfs.set', { uri:getURIfromItem(it), resource:s }, function(result){
+            result.ok ? reloadVFS() : msgBox(result.error);
+        });
+    });
+} // itemBind
+
+function addFolder() {
+    var it = getFirstSelectedItem() || getRootItem();
+    inputBox('Enter name or path', function(s){
+        if (!s) return;    
+        socket.emit('vfs.add', { uri:getURIfromItem(it), resource:s }, function(result){
+            result.ok ? reloadVFS() : msgBox(result.error);
+        });
+    });
+} // addFolder
 
 function setupEventHandlers() {
     $('#vfs').click(function(){
         vfsSelect(null); // deselect
     });
-    $('#bind').click(function(){
-        inputBox({text:'Enter path', do:function(s){
-            var it = log(getSelectedItems());
-            if (!it) return;
-            it = it[0];
-            ** we need to get the uri for the item, but this information is currently not in the item.
-            * Una possibilità è calcolarla per ogni elemento quando viene inserito nell'albero, ma se poi
-            * c'è un rename o un drag&drop bisogna aggiornarlo.
-            * Un'altra possibilità è puntare al padre, ma va aggiornato se c'è un drag&drop.                                       
-            socket.emit('vfs.set', { uri:'/', resource:s }, function(ok){
-                log(ok);
-            });
-        });
-    });
+    $('#bind').click(itemBind);
+    $('#addFolder').click(addFolder);
     $('#vfs li').live({
         click: function(ev){
-            log(this);
             ev.stopImmediatePropagation();
             vfsSelect(this);
+        },
+        dblclick: function(ev){
+            ev.stopImmediatePropagation();
+            removeSelection();
+            var it = getFirstSelectedItem();
+            if (isFolder(it)) {
+                reloadVFS(it);
+            }
         },
         mouseover: function(ev){
             ev.stopImmediatePropagation();
@@ -68,31 +102,78 @@ function getSelectedItems() {
     return res;
 } // getSelectedItems
 
+function getFirstSelectedItem() {
+    var res = getSelectedItems();
+    return res ? res[0] : false;
+} // getFirstSelectedItem
+
+function getRootItem() {
+    var e = $('#vfs li:first');  
+    var it = e.data('item');
+    it.element = e; // bind the item to the html element, so we can get to it
+    return it;
+} // getRootItem
+
+function getParentFromItem(it) {
+    return $(it.element).parent().closest('li').data('item');
+} // getParentFromItem
+
+function isFolder(it) { return it.itemKind.endsBy('folder') }
+
+function getURIfromItem(it) {
+    var p = getParentFromItem(it);
+    return (p ? getURIfromItem(p) : '')
+        + encodeURI(it.name)
+        + (p && isFolder(it) ? '/' : '');
+} // getURIfromItem
+
 function vfsUpdateButtons() {
-    var it = getSelectedItems()[0]; //** do it on just one item for now
+    var it = getFirstSelectedItem();
     enableButton('bind', it && it.itemKind == 'virtual folder'); 
-    enableButton('addFolder', it && 'folder'.in(it.itemKind)); 
 } // vfsUpdateButtons 
 
 function enableButton(name, condition) {
     $('#'+name).attr({disabled: !condition});
 } // enableButton
 
-function showVFS() {
-    var e = $('#vfs').empty();
-    socket.emit('vfs.get', { uri:'/' }, function(data){
-        log(data);
-        // make a one-item list, for the root
-        e = $('<ul>').appendTo(e);
-        e = addItem(e, data);
+function reloadVFS(item) {
+    var e;
+    if (item) { 
+        e = $(item.element);
+    } else {
+        e = $('#vfs li:first');
+        if (!e.size()) {
+            e = $('<li>').appendTo($('<ul>').appendTo('#vfs'));
+        }
+    }
+    e.empty(); // remove possible children
+    socket.emit('vfs.get', { uri:item ? getURIfromItem(item) : '/', depth:1 }, function(data){
+        log('VFS.GET', data);
+        setItem(e, data);
         // children
         e = $('<ul>').appendTo(e);
         data.children.forEach(function(it){
-            addItem(e, it);            
+            addItemUnder(e, it);            
         });
     });    
-} // showVFS
+} // reloadVFS
 
-function addItem(under, item) { 
-    return $('<li>').data({item:item}).appendTo(under).text(item.name);
-} // addItem
+function setItem(element, item) { 
+    return $(element)
+        .data({item:item})
+        .text(item.name);
+} // setItem
+
+function addItemUnder(under, item) { 
+    return setItem($('<li>').appendTo(under), item);
+} // addItemUnder
+
+function removeSelection() {
+    if (window.getSelection) {  // all browsers, except IE before version 9
+        return getSelection().removeAllRanges();
+    }
+    if (document.selection.createRange) {        // Internet Explorer
+        var range = document.selection.createRange();
+        document.selection.empty();
+    }
+} // removeSelection

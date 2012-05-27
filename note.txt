@@ -1,5 +1,9 @@
 === DOING
 backend: vfs manipulation
+    adding folder
+        get from the server only the branch from the parent folder
+        replace only that branch
+        automatically select the new folder
 
 === FEASIBILITY
 distribution: how? size?

@@ -1,6 +1,7 @@
-// libs
-GLOBAL.vfs = new (require('./vfs').Vfs)();
+require('./lib/common');
+GLOBAL.vfs = new vfsLib.Vfs();
 //vfs.root.set('C:\\vedere').add('c:\\data\\pics\\fantasy');
+vfs.root.add('2', function(node){ node.add('3') });
 
 var fileServer = require('./file-server');
 var listenOn = {port:8, ip:'0.0.0.0'};

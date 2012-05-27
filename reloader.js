@@ -1,7 +1,7 @@
 var fs = require('fs');
 var cp = require('child_process');
 var path = require('path');
-var misc = require('./misc');
+var misc = require('./lib/misc');
 
 var fn = process.argv[2];
 var child;
@@ -54,10 +54,9 @@ if (!path.existsSync(fn)
     fn += '.js';
 
 reload();
-var matching = /\.js$/i; // create once...
 fs.watch(path.dirname(fn), misc.delayedCall(300, function(evt, file){
     if (evt != 'change'
-    || !file.match(matching) // ...use many
+    || !file.match(/\.js$/i)
     || file == 'reloader.js') return;   
     l(file+' changed. Reloading...');
     hr();

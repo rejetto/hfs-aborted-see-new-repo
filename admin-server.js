@@ -1,7 +1,6 @@
-require('./common');
 var http = require('http');
-var serving = require('./serving');
 var socket_io = require('socket.io');
+var serving = require('./lib/serving');
 
 exports.start = function(listenOn) {
     srv.listen(listenOn.port, listenOn.ip, function(){
@@ -15,12 +14,12 @@ var srv = http.createServer(function(httpReq,httpRes){
     var peer = httpReq.socket.address();
     dbg('BE: serving '+peer.address+':'+peer.port+' '+httpReq.url);
 
-    if (serving.serveStatic(httpReq, httpRes)) return;
+    if (serving.serveStatic(httpReq, httpRes)) return; // access to the special 'static' folder
     if (httpReq.uri == '/') {
         serving.serveFile('static/backend.html', httpRes);
         return;
     }
-    serve404(httpRes);
+    serve404(httpRes); // we serve nothing else
 });
 
 srv.on('error', function(err){
@@ -30,13 +29,39 @@ srv.on('error', function(err){
     }
 });
 
-function nodeToObject(fnode) {
-    var res = misc.extend({name:fnode.name}, fnode);
-    delete res.parent;
+/* converts FileNode to an object that's ready to be streamed to the back-end.
+    @param depth specifies how many levels of children should be included in the structure.
+    @param cb is necessary if you specify a depth that's more than zero
+    @return the object representing the FileNode if no depth is specified. Otherwise the returning turns into
+        an async fashion and you need to specify a callback to retrieve the result.    
+*/
+function nodeToObject(fnode, depth, cb) {
+    assert(fnode instanceof vfsLib.FileNode, 'fnode');
+    assert(!cb || typeof cb == 'function', 'cb');
+     
+    var res = ceLib.extenduptolevel({name:fnode.name}, fnode, 1); // make a copy of the whole object without recurring, and overwriting the getter 'name' 
+    delete res.parent;  // this makes a circular reference
+    delete res.children; // in case we want the true listing, not just the children  
+    delete res.customName;
     if (res.deleted && !res.deleted.length) {
         delete res.deleted; // save on it
     }
-    return res;
+    if (!res.resource) {
+        delete res.resource;
+    }
+
+    if (!depth) {
+        if (cb) cb(res);
+        return res;    
+    }
+    assert(cb, 'cb');
+    fnode.dir(function(items){
+        res.children = [];
+        items.forEach(function(e){
+            res.children.push(nodeToObject(e, depth-1));                    
+        });
+        cb(res);
+    });
 } // nodeToObject
 
 /*
@@ -49,15 +74,7 @@ io.sockets.on('connection', function(socket){
     
     socket.on('vfs.get', function onGet(data, cb) {
         vfs.fromUrl(data.uri, function(fnode) {
-            fnode.dir(function(items){
-                // 'fnode' and 'items' are expected by the client in a different form, so we clone them before we treat them
-                var res = nodeToObject(fnode);
-                res.children = [];
-                items.forEach(function(e){
-                    res.children.push(nodeToObject(e));                    
-                });
-                cb(res);
-            });
+            nodeToObject(fnode, data.depth, cb);                
         });
     });
 
@@ -78,6 +95,10 @@ io.sockets.on('connection', function(socket){
             : null, cb)) return;
 
         vfs.fromUrl(data.uri, function(fnode) {
+            if (!fnode) {
+                ioError(cb, 'uri not found');
+                return;
+            }
             fnode.add(data.resource, ioOk(cb));  
         });
     });
