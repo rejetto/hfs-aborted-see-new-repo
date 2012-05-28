@@ -36,8 +36,12 @@ srv.on('error', function(err){
         an async fashion and you need to specify a callback to retrieve the result.    
 */
 function nodeToObject(fnode, depth, cb) {
-    assert(fnode instanceof vfsLib.FileNode, 'fnode');
     assert(!cb || typeof cb == 'function', 'cb');
+    if (!fnode) {
+        if (cb) cb(false);
+        return false;
+    }
+    assert(fnode instanceof vfsLib.FileNode, 'fnode');
      
     var res = ceLib.extenduptolevel({name:fnode.name}, fnode, 1); // make a copy of the whole object without recurring, and overwriting the getter 'name' 
     delete res.parent;  // this makes a circular reference
@@ -73,7 +77,7 @@ misc.setupSocketIO(io);
 io.sockets.on('connection', function(socket){
     
     socket.on('vfs.get', function onGet(data, cb) {
-        vfs.fromUrl(data.uri, function(fnode) {
+        vfs.fromUrl(dbg('VFS.GET', data.uri), function(fnode) {
             nodeToObject(fnode, data.depth, cb);                
         });
     });

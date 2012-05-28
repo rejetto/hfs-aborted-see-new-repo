@@ -35,22 +35,22 @@ function inputBox() {
 function msgBox(message) { alert(message) }
 
 function itemBind() { 
-    var it = getFirstSelectedItem();
+    var it = getFirstSelectedFolder();
     if (!it) return;
     inputBox('Enter path', function(s){
         if (!s) return;    
         socket.emit('vfs.set', { uri:getURIfromItem(it), resource:s }, function(result){
-            result.ok ? reloadVFS() : msgBox(result.error);
+            result.ok ? reloadVFS(it) : msgBox(result.error);
         });
     });
 } // itemBind
 
 function addFolder() {
-    var it = getFirstSelectedItem() || getRootItem();
+    var it = getFirstSelectedFolder() || getRootItem();
     inputBox('Enter name or path', function(s){
         if (!s) return;    
         socket.emit('vfs.add', { uri:getURIfromItem(it), resource:s }, function(result){
-            result.ok ? reloadVFS() : msgBox(result.error);
+            result.ok ? reloadVFS(it) : msgBox(result.error);
         });
     });
 } // addFolder
@@ -96,7 +96,6 @@ function getSelectedItems() {
     var res = [];
     $('#vfs .selected').each(function(i,e){
         var it = $(e).data('item');
-        it.element = e; // bind the item to the html element, so we can get to it
         res.push(it);
     });
     return res;
@@ -107,12 +106,17 @@ function getFirstSelectedItem() {
     return res ? res[0] : false;
 } // getFirstSelectedItem
 
-function getRootItem() {
-    var e = $('#vfs li:first');  
-    var it = e.data('item');
-    it.element = e; // bind the item to the html element, so we can get to it
-    return it;
-} // getRootItem
+function getFirstSelectedFolder() {
+    var res = getSelectedItems();
+    for (var i=0, l=res.length; i<=l; ++i) {
+        if (isFolder(res[i])) {
+            return res[i];
+        }
+    }
+    return false;
+} // getFirstSelectedFolder
+
+function getRootItem() { return $('#vfs li:first').data('item'); }
 
 function getParentFromItem(it) {
     return $(it.element).parent().closest('li').data('item');
@@ -148,7 +152,6 @@ function reloadVFS(item) {
     }
     e.empty(); // remove possible children
     socket.emit('vfs.get', { uri:item ? getURIfromItem(item) : '/', depth:1 }, function(data){
-        log('VFS.GET', data);
         setItem(e, data);
         // children
         e = $('<ul>').appendTo(e);
@@ -158,7 +161,8 @@ function reloadVFS(item) {
     });    
 } // reloadVFS
 
-function setItem(element, item) { 
+function setItem(element, item) {
+    item.element = element;  // bind the item to the html element, so we can get to it 
     return $(element)
         .data({item:item})
         .text(item.name);

@@ -1,3 +1,7 @@
+/*
+This is a simple utility to run HFS and have it restarted every time sources are modified.
+*/
+
 var fs = require('fs');
 var cp = require('child_process');
 var path = require('path');

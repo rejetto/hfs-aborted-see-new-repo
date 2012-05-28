@@ -1,0 +1,43 @@
+{
+  "name": "hfs",
+  "description": "HTTP File Server",
+  "keywords": [
+    "file server",
+    "http server"
+  ],
+  "version": "0.1.0",
+  "homepage": "http://www.rejetto.com/hfs",
+  "author": "Massimo Melina <a@rejetto.com> (http://rejetto.com)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rejetto/hfs"
+  },
+  "bugs": {
+    "email": "support@rejetto.com",
+    "url": "http://www.rejetto.com/forum/index.php/board,28.0.html"
+  },
+  "directories": {
+    "lib": "./lib",
+    "static": "./static"
+  },
+  "main": "./main.js",
+  "dependencies": {
+    "socket.io": "0.9.5",
+    "cloneextend": "0.0.3" 
+  },
+  "bundleDependencies": [
+  ],
+  "devDependencies": {
+  },
+  "engines": {
+    "node": "0.6",
+    "npm": "1"
+  },
+  "os": ["win32", "linux"],
+  "licenses": [
+    {
+      "type": "GPLv2",
+      "url": "http://www.gnu.org/licenses/gpl-2.0.html"
+    }
+  ]
+}
