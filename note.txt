@@ -1,9 +1,8 @@
 === DOING
 backend: vfs manipulation
     adding folder
-        get from the server only the branch from the parent folder
-        replace only that branch
         automatically select the new folder
+http://en.wikipedia.org/wiki/JSDoc
 
 === FEASIBILITY
 distribution: how? size?
