@@ -1,3 +1,7 @@
+/**
+ * @fileOverview This serves the front-end GUI and all it needs to perform server-side actions. 
+ * @author Massimo Melina <a@rejetto.com> 
+ */ 
 var http = require('http');
 var socket_io = require('socket.io');
 var serving = require('./lib/serving');
@@ -38,11 +42,13 @@ srv.on('error', function(err){
 */
 
 var io = socket_io.listen(srv);
-misc.setupSocketIO(io);
+serving.setupSocketIO(io);
 io.sockets.on('connection', function(socket){
+    //** sequences like these may be better with Step(). Try 
     socket.on('get list', function onGetList(data, cb){
+        dbg('get list', arguments);
         vfs.fromUrl(data.path, function(fnode) {
-            getReplyForFolder(fnode, cb);  
+            getReplyForFolder(fnode, serving.ioOk.bind(this,cb));  
         });
     });
 });

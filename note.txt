@@ -1,21 +1,29 @@
 === DOING
 backend: vfs manipulation
-    adding folder
-        automatically select the new folder
-http://en.wikipedia.org/wiki/JSDoc
+try to document a little
+    http://en.wikipedia.org/wiki/JSDoc
 
 === FEASIBILITY
 distribution: how? size?
     https://github.com/wearefractal/npkg
-system integration: an executable will accomplish some of the work and communicate with HFS possibly via socket  
+    npm install hfs
+system integration
+    some of these features are expected to not be possible with Node, but must be verified. Those will be
+    achieved with a different executable communicating with node possibly via socket.
+        background notifications
+            Windows' tray icons
+        automatic handling starting/restaring of the server
+            Windows' services
+        easy way to add to the VFS, possibly starting HFS if it's not running
+            Windows' shell context menu                   
 
 === DESIGN
-- no GUI, only web
+- GUI: all web
 - admin on different port, to eventually accept connection only in local
 - executable helper to get some features:
     - tray icon for
         - start/stop
-        - access administration
+        - easy access to administration
         - notification
     - shell context menu
         - add files via right click
@@ -95,4 +103,10 @@ http://superdit.com/2011/06/01/extjs-simple-file-browser/
 - permissions and options have default values that are enforced when not assigned, to not clutter the stored data structure
 
 === TO DO
-ensure the web apps are perfectly working offline
+what wiki to use for development, github or rejetto.com?
+ensure the web apps are perfectly working offline, don't rely on online resources (or do it just as an option or gracefully degrade)
+modules that could be useful
+    for better performance on socket.io exchanges https://github.com/pgriess/node-msgpack
+    mime https://github.com/bentomas/node-mime
+    most used reloader https://github.com/remy/nodemon
+    browse the whole list at https://github.com/joyent/node/wiki/modules

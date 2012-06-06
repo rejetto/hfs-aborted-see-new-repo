@@ -50,7 +50,13 @@ function addFolder() {
     inputBox('Enter name or path', function(s){
         if (!s) return;    
         socket.emit('vfs.add', { uri:getURIfromItem(it), resource:s }, function(result){
-            result.ok ? reloadVFS(it) : msgBox(result.error);
+            if (result.ok) {
+                addItemUnder(it, result.item);
+                vfsSelect(result.item);
+            }
+            else {
+                msgBox(result.error);
+            }
         });
     });
 } // addFolder
@@ -88,6 +94,9 @@ function setupEventHandlers() {
 
 function vfsSelect(el) {
     $('#vfs .selected').removeClass('selected');
+    if (el && el.element) {
+        el = el.element; // support items
+    }
     $(el).addClass('selected');
     vfsUpdateButtons();                
 } // vfsSelect
@@ -108,7 +117,7 @@ function getFirstSelectedItem() {
 
 function getFirstSelectedFolder() {
     var res = getSelectedItems();
-    for (var i=0, l=res.length; i<=l; ++i) {
+    for (var i=0, l=res.length; i<l; ++i) {
         if (isFolder(res[i])) {
             return res[i];
         }
@@ -146,7 +155,7 @@ function reloadVFS(item) {
         e = $(item.element);
     } else {
         e = $('#vfs li:first');
-        if (!e.size()) {
+        if (!e.size()) { // we haven't created the root item yet
             e = $('<li>').appendTo($('<ul>').appendTo('#vfs'));
         }
     }
@@ -168,8 +177,16 @@ function setItem(element, item) {
         .text(item.name);
 } // setItem
 
-function addItemUnder(under, item) { 
-    return setItem($('<li>').appendTo(under), item);
+function addItemUnder(under, item) {
+    if (under.element) { // it's an item
+        under = under.element; // we want the element
+        assert(under, 'under'); // we only work with items linked to elements
+        // the UL element is the place for children, have one or create it  
+        var x = $(under).find('ul'); 
+        under = x.size() ? x : $('<ul>').appendTo(under); 
+    }
+    var el = $('<li>').appendTo(under);                 
+    return setItem(el, item);
 } // addItemUnder
 
 function removeSelection() {

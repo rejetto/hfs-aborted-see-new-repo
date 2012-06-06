@@ -18,10 +18,10 @@ jQuery.fn.isOverflowed = function(HorV) {
 }; // isOverflowed
 
 var log = function() {
+    var last;
     for (var k in arguments)
-        console.log(arguments[k]);
-    for (var k in arguments)
-        return arguments[k];
+        console.log(last = arguments[k]);
+    return last;
 }; // log
 
 function isTransparent(color) {
@@ -77,7 +77,7 @@ function getDeep(obj, path) {
 } // getDeep
 
 function assert(condition, message) {
-    if (!condition) alert(message);
+    if (!condition) alert('ASSERTION ERROR: '+message);
     return !condition;
 } // assert
  

@@ -1,4 +1,8 @@
-var myGigFile = '/vedere/[DVDRIP-XVID-ITA]TENACIOUS D E IL DESTINO DEL ROCK .avi';
+/**
+ * @fileOverview This should show the best performance we can expect
+ * @author Massimo Melina <a@rejetto.com> 
+ */ 
+var myGigFile = '/bigfile.avi';
 
 var http = require('http');
 var fs = require('fs');

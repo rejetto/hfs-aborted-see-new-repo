@@ -1,3 +1,6 @@
+/**
+ * @author Massimo Melina <a@rejetto.com> 
+ */ 
 require('./lib/common');
 GLOBAL.vfs = new vfsLib.Vfs();
 //vfs.root.set('C:\\vedere').add('c:\\data\\pics\\fantasy');
@@ -10,3 +13,4 @@ fileServer.start(listenOn);
 var adminServer = require('./admin-server');
 var adminOn = {port:88, ip:'127.0.0.1'};
 adminServer.start(adminOn);
+
