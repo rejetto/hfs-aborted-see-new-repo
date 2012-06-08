@@ -5,7 +5,7 @@
     "file server",
     "http server"
   ],
-  "version": "0.1.0",
+  "version": "0.1.1",
   "homepage": "http://www.rejetto.com/hfs",
   "author": "Massimo Melina <a@rejetto.com> (http://rejetto.com)",
   "repository": {
@@ -13,7 +13,7 @@
     "url": "https://github.com/rejetto/hfs"
   },
   "bugs": {
-    "email": "support@rejetto.com",
+    "email": "a@rejetto.com",
     "url": "http://www.rejetto.com/forum/index.php/board,28.0.html"
   },
   "directories": {
@@ -23,7 +23,8 @@
   "main": "./main.js",
   "dependencies": {
     "socket.io": "0.9.5",
-    "cloneextend": "0.0.3" 
+    "cloneextend": "0.0.3"
+    "async": "0.1.18" 
   },
   "bundleDependencies": [
   ],

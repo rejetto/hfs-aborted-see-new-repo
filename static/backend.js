@@ -1,6 +1,12 @@
 var socket = io.connect(window.location.origin);
 
+var tpl = {
+    item: "<li><span class='expand-button'></span><span class='label'></span></li>",
+    noChildren: "<span class='no-children'>nothing</span>",
+};
+
 $(function(){ // dom ready
+    $(tpl.item).appendTo($('<ul>').appendTo('#vfs')); // create the root element
     vfsUpdateButtons();
     setupEventHandlers();
     socket.on('connect', function(){ // socket ready
@@ -70,11 +76,12 @@ function setupEventHandlers() {
     $('#vfs li').live({
         click: function(ev){
             ev.stopImmediatePropagation();
+            removeBrowserSelection();
             vfsSelect(this);
         },
         dblclick: function(ev){
             ev.stopImmediatePropagation();
-            removeSelection();
+            removeBrowserSelection();
             var it = getFirstSelectedItem();
             if (isFolder(it)) {
                 reloadVFS(it);
@@ -82,11 +89,30 @@ function setupEventHandlers() {
         },
         mouseover: function(ev){
             ev.stopImmediatePropagation();
-            $('#vfs .hovered').removeClass('hovered');
+            $('#vfs li.hovered').removeClass('hovered');
             $(this).addClass('hovered');
         },
         mouseout: function(ev){
             ev.stopImmediatePropagation();
+            $(this).removeClass('hovered');
+        }
+    });
+    $('#vfs .expand-button').live({
+        click: function(ev){
+            ev.stopImmediatePropagation();
+            removeBrowserSelection();
+            var li = $(ev.target).closest('li');
+            var collapse = li.hasClass('expanded');
+            setCollapsed(li, collapse);
+            if (!collapse) {
+                reloadVFS(li);
+            }
+        },
+        mouseover: function(ev){
+            $('#vfs .expand-button.hovered').removeClass('hovered');
+            $(this).addClass('hovered');
+        },
+        mouseout: function(ev){
             $(this).removeClass('hovered');
         }
     });
@@ -125,19 +151,22 @@ function getFirstSelectedFolder() {
     return false;
 } // getFirstSelectedFolder
 
-function getRootItem() { return $('#vfs li:first').data('item'); }
+function getRoot() { return $('#vfs li:first'); } 
+
+function getRootItem() { return getRoot().data('item'); }
 
 function getParentFromItem(it) {
     return $(it.element).parent().closest('li').data('item');
 } // getParentFromItem
 
-function isFolder(it) { return it.itemKind.endsBy('folder') }
+function isFolder(it) { return it && it.itemKind.endsBy('folder') }
 
-function getURIfromItem(it) {
-    var p = getParentFromItem(it);
+function getURIfromItem(item) {
+    item = asItem(item);
+    var p = getParentFromItem(item);
     return (p ? getURIfromItem(p) : '')
-        + encodeURI(it.name)
-        + (p && isFolder(it) ? '/' : '');
+        + encodeURI(item.name)
+        + (p && isFolder(item) ? '/' : '');
 } // getURIfromItem
 
 function vfsUpdateButtons() {
@@ -150,31 +179,68 @@ function enableButton(name, condition) {
 } // enableButton
 
 function reloadVFS(item) {
-    var e;
-    if (item) { 
-        e = $(item.element);
-    } else {
-        e = $('#vfs li:first');
-        if (!e.size()) { // we haven't created the root item yet
-            e = $('<li>').appendTo($('<ul>').appendTo('#vfs'));
-        }
-    }
-    e.empty(); // remove possible children
+    var e = item ? asLI(item) : getRoot();
+    e.find('ul').remove(); // remove possible children
     socket.emit('vfs.get', { uri:item ? getURIfromItem(item) : '/', depth:1 }, function(data){
+        if (!data) return;
         setItem(e, data);
-        // children
-        e = $('<ul>').appendTo(e);
+        setCollapsed(e, false);
+        var ul = e.find('ul');
+        if (!data.children.length) {
+            $(tpl.noChildren).appendTo(ul);
+            return;
+        }
         data.children.forEach(function(it){
-            addItemUnder(e, it);            
+            addItemUnder(ul, it);            
         });
     });    
 } // reloadVFS
 
+/** util function for those functions who want to accept several types but work with the $(LI)
+ */
+function asLI(x) {
+    x = !x ? null
+        : x.element ? x.element
+        : (x instanceof HTMLElement || x instanceof $) ? x
+        : null;
+    return x ? $(x) : x;
+} // asLI
+
+/** util function for those functions who want to accept several types but work with the $(LI)
+ */
+function asItem(x) {
+    return !x ? null
+        : x.element ? x
+        : (x instanceof HTMLElement || x instanceof $) ? $(x).closest('li').data('item')
+        : null;
+} // asItem
+
+function setCollapsed(item, state) {
+    var li = asLI(item);
+    if (!li) return;
+    if (state == undefined) state = true;
+    li.addClass(state ? 'collapsed' : 'expanded')
+        .removeClass(!state ? 'collapsed' : 'expanded')
+        .find('.expand-button:first').text(state ? '▷' : '▲');
+    // deal with the container of children
+    var ul = li.find('ul:first');
+    if (state) {
+        ul.remove();
+    } 
+    else { 
+        if (!ul.size())
+            ul = $('<ul>').appendTo(li);
+    }        
+    return true;
+} // setCollapsed
+
 function setItem(element, item) {
-    item.element = element;  // bind the item to the html element, so we can get to it 
-    return $(element)
-        .data({item:item})
-        .text(item.name);
+    var li = asLI(element);
+    item.element = li[0];  // bind the item to the html element, so we can get to it 
+    li.data({item:item});
+    li.find('.label:first').text(item.name);
+    setCollapsed(li);
+    return element;
 } // setItem
 
 function addItemUnder(under, item) {
@@ -185,11 +251,11 @@ function addItemUnder(under, item) {
         var x = $(under).find('ul'); 
         under = x.size() ? x : $('<ul>').appendTo(under); 
     }
-    var el = $('<li>').appendTo(under);                 
+    var el = $(tpl.item).appendTo(under);                 
     return setItem(el, item);
 } // addItemUnder
 
-function removeSelection() {
+function removeBrowserSelection() {
     if (window.getSelection) {  // all browsers, except IE before version 9
         return getSelection().removeAllRanges();
     }
@@ -197,4 +263,4 @@ function removeSelection() {
         var range = document.selection.createRange();
         document.selection.empty();
     }
-} // removeSelection
+} // removeBrowserSelection

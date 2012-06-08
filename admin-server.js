@@ -65,10 +65,12 @@ function nodeToObject(fnode, depth, cb) {
     assert(cb, 'cb');
     fnode.dir(function(items){
         res.children = [];
-        items.forEach(function(e){
-            res.children.push(nodeToObject(e, depth-1));                    
-        });
-        cb(res);
+        async.forEach(items.getProperties(), function(e, doneThis){
+            nodeToObject(e, depth-1, function(obj){
+                res.children.push(obj);
+                doneThis();
+            });                    
+        }, cb.bind(this,res));
     });
 } // nodeToObject
 

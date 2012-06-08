@@ -1,5 +1,13 @@
 body { font:10pt verdana, arial, sans-serif; }
 a img { border:0; } /* conform IE */
+#vfs ul { list-style:none; padding:0; }
+#vfs ul ul { list-style:none; padding-left:3em; }
 #vfs li { border:2px solid transparent; padding:0.1em 0.2em }
 #vfs li.selected { background:#ddf; border-color:#99f; }
 #vfs li.hovered { background:#eee; }
+#vfs .expand-button { margin-right:0.5em; cursor:pointer; }
+#vfs .expand-button.hovered { background-color:#ddd; }
+#vfs li.collapsed ul { display:none; } 
+#vfs .no-children { color:#888; }
+#vfs .no-children:before,
+#vfs .no-children:after { content:"..."; }

@@ -1,5 +1,6 @@
 === DOING
 backend: vfs manipulation
+    add single file
 try to document a little
     http://en.wikipedia.org/wiki/JSDoc
 
