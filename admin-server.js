@@ -58,7 +58,8 @@ function nodeToObject(fnode, depth, cb) {
         delete res.resource;
     }
 
-    if (!depth) {
+    if (!depth
+    || !fnode.isFolder()) {
         if (cb) cb(res);
         return res;    
     }
@@ -78,7 +79,7 @@ function nodeToObject(fnode, depth, cb) {
     SET UP SOCKET.IO
 */
 
-var io = socket_io.listen(srv);
+var io = exports.io = socket_io.listen(srv);
 serving.setupSocketIO(io);
 io.sockets.on('connection', function(socket){
     
@@ -92,7 +93,8 @@ io.sockets.on('connection', function(socket){
     socket.on('vfs.set', function onSet(data, cb){
         if (!data) return;
         vfs.fromUrl(data.uri, function(fnode) {
-            fnode.set(data.resource, serving.ioOk.bind(this,cb));  
+            fnode.set(data.resource, serving.ioOk.bind(this,cb));
+            vfsChanged(socket, data.uri);
         });
     });
 
@@ -111,8 +113,16 @@ io.sockets.on('connection', function(socket){
             }
             fnode.add(data.resource, function(newNode){
                 serving.ioOk(cb, {item:nodeToObject(newNode)});
+                vfsChanged(socket, data.uri);
             });  
         });
     });
     
 });
+
+vfsChanged = function(socket, uri) {
+    dbg('vfs.changed');
+    [socket.broadcast, require('./file-server').io.sockets].forEach(function(o){
+        o.emit('vfs.changed', {uri:uri});
+    });
+}; // vfsChanged

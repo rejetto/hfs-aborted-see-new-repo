@@ -1,16 +1,10 @@
-=== DOING
-backend: vfs manipulation
-    add single file
-try to document a little
-    http://en.wikipedia.org/wiki/JSDoc
-
 === FEASIBILITY
 distribution: how? size?
     https://github.com/wearefractal/npkg
     npm install hfs
 system integration
-    some of these features are expected to not be possible with Node, but must be verified. Those will be
-    achieved with a different executable communicating with node possibly via socket.
+    some of these features are expected to not be possible with Node, but must be verified.
+    Those who are not possible will be achieved with a different executable communicating with node possibly via socket.
         background notifications
             Windows' tray icons
         automatic handling starting/restaring of the server
@@ -102,12 +96,3 @@ http://superdit.com/2011/06/01/extjs-simple-file-browser/
     - icon
     - ? message when not allowed
 - permissions and options have default values that are enforced when not assigned, to not clutter the stored data structure
-
-=== TO DO
-what wiki to use for development, github or rejetto.com?
-ensure the web apps are perfectly working offline, don't rely on online resources (or do it just as an option or gracefully degrade)
-modules that could be useful
-    for better performance on socket.io exchanges https://github.com/pgriess/node-msgpack
-    mime https://github.com/bentomas/node-mime
-    most used reloader https://github.com/remy/nodemon
-    browse the whole list at https://github.com/joyent/node/wiki/modules

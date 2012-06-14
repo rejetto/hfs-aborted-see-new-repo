@@ -1,16 +1,31 @@
 var socket = io.connect(window.location.origin);
 
 var tpl = {
-    item: "<li><span class='expand-button'></span><span class='label'></span></li>",
+    item: "<li>"
+        +"<span class='expand-button'></span>"
+        +"<span class='icon'></span>"
+        +"<span class='label'></span>"
+    +"</li>",
     noChildren: "<span class='no-children'>nothing</span>",
 };
 
 $(function(){ // dom ready
     $(tpl.item).appendTo($('<ul>').appendTo('#vfs')); // create the root element
+
+    // hide expansion button
+    expansionCss = $.rule('#vfs .expand-button { opacity:0 }').appendTo('style')[0].style;
+    
     vfsUpdateButtons();
     setupEventHandlers();
     socket.on('connect', function(){ // socket ready
         reloadVFS();
+    });
+    socket.on('vfs.changed', function(data){
+        if (!data) return; // something wrong
+        var it = getItemFromURI(data.uri);
+        if (!it) return; // not in the visible tree: ignore
+        if (!isExpanded(it)) return; // not expanded, we don't see its content, no need to reload
+        reloadVFS(it);
     });
 });
 
@@ -51,12 +66,13 @@ function itemBind() {
     });
 } // itemBind
 
-function addFolder() {
+function addItem() {
     var it = getFirstSelectedFolder() || getRootItem();
     inputBox('Enter name or path', function(s){
         if (!s) return;    
         socket.emit('vfs.add', { uri:getURIfromItem(it), resource:s }, function(result){
             if (result.ok) {
+                setExpanded(it);
                 addItemUnder(it, result.item);
                 vfsSelect(result.item);
             }
@@ -65,14 +81,15 @@ function addFolder() {
             }
         });
     });
-} // addFolder
+} // addItem
 
 function setupEventHandlers() {
+
     $('#vfs').click(function(){
         vfsSelect(null); // deselect
     });
     $('#bind').click(itemBind);
-    $('#addFolder').click(addFolder);
+    $('#addItem').click(addItem);
     $('#vfs li').live({
         click: function(ev){
             ev.stopImmediatePropagation();
@@ -91,6 +108,7 @@ function setupEventHandlers() {
             ev.stopImmediatePropagation();
             $('#vfs li.hovered').removeClass('hovered');
             $(this).addClass('hovered');
+            $('#vfs .expand-button').fadeIn();
         },
         mouseout: function(ev){
             ev.stopImmediatePropagation();
@@ -102,9 +120,9 @@ function setupEventHandlers() {
             ev.stopImmediatePropagation();
             removeBrowserSelection();
             var li = $(ev.target).closest('li');
-            var collapse = li.hasClass('expanded');
-            setCollapsed(li, collapse);
-            if (!collapse) {
+            var mustExpand = !isExpanded(li);
+            setExpanded(li, mustExpand);
+            if (mustExpand) {
                 reloadVFS(li);
             }
         },
@@ -115,6 +133,11 @@ function setupEventHandlers() {
         mouseout: function(ev){
             $(this).removeClass('hovered');
         }
+    });
+    $('#vfs').hover(function(){
+        animate(expansionCss, 'opacity', 1, {duration:0.2});             
+    }, function(){
+        animate(expansionCss, 'opacity', 0);             
     });
 } // setupEventHandlers
 
@@ -155,11 +178,45 @@ function getRoot() { return $('#vfs li:first'); }
 
 function getRootItem() { return getRoot().data('item'); }
 
+/** return children in the same format of the parameter: jQuery, array of items or array of HTMLElements */
+function getChildren(x) {
+    if (!x) return false;
+    var item = !!x.element;
+    var children = $(x.element || x).find('ul>li');
+    if (x instanceof $) return children; 
+    var res = [];
+    children.each(function(idx,el){
+        res.push(item ? asItem(el) : el);         
+    });
+    return res;
+} // getChildren
+
+/** return first child of "parent" matching "pattern" */
+function getChildAs(parent, pattern) {
+    assert(parent && parent.element && pattern, 'arguments');
+    var res = false;
+    $(parent.element).find('ul>li').each(function(idx,el){    
+        var child = asItem(el)
+        for (var k in pattern)
+            if (pattern.hasOwnProperty(k))
+                if (pattern[k] !== child[k])
+                    return; // this child does not match, skip 
+        res = child; // found! mark it
+        return false; // stop it 
+    });
+    return res;
+} // getChildAs
+
 function getParentFromItem(it) {
     return $(it.element).parent().closest('li').data('item');
 } // getParentFromItem
 
-function isFolder(it) { return it && it.itemKind.endsBy('folder') }
+function isFolder(it) {
+    it = asItem(it);
+    return it && it.itemKind.endsBy('folder');
+} // isFolder
+
+function isExpanded(x) { return asLI(x).hasClass('expanded') }
 
 function getURIfromItem(item) {
     item = asItem(item);
@@ -168,6 +225,18 @@ function getURIfromItem(item) {
         + encodeURI(item.name)
         + (p && isFolder(item) ? '/' : '');
 } // getURIfromItem
+
+/** get the item from the uri, but only if it's currently in our tree */
+function getItemFromURI(uri) {    
+    var run = getRootItem();
+    for (var i=0, a=uri.split('/'), l=a.length; i<l; ++i) {
+        var name = a[i];
+        if (!name) continue;
+        run = getChildAs(run, {name:name});
+        if (!run) return false;
+    }
+    return run;  
+} // getItemFromURI 
 
 function vfsUpdateButtons() {
     var it = getFirstSelectedItem();
@@ -183,8 +252,8 @@ function reloadVFS(item) {
     e.find('ul').remove(); // remove possible children
     socket.emit('vfs.get', { uri:item ? getURIfromItem(item) : '/', depth:1 }, function(data){
         if (!data) return;
-        setItem(e, data);
-        setCollapsed(e, false);
+        setItem(e, log(data));
+        setExpanded(e);
         var ul = e.find('ul');
         if (!data.children.length) {
             $(tpl.noChildren).appendTo(ul);
@@ -196,8 +265,7 @@ function reloadVFS(item) {
     });    
 } // reloadVFS
 
-/** util function for those functions who want to accept several types but work with the $(LI)
- */
+/** util function for those functions who want to accept several types but work with the $(LI)  */
 function asLI(x) {
     x = !x ? null
         : x.element ? x.element
@@ -206,8 +274,7 @@ function asLI(x) {
     return x ? $(x) : x;
 } // asLI
 
-/** util function for those functions who want to accept several types but work with the $(LI)
- */
+/** util function for those functions who want to accept several types but work with the $(LI)  */
 function asItem(x) {
     return !x ? null
         : x.element ? x
@@ -215,31 +282,42 @@ function asItem(x) {
         : null;
 } // asItem
 
-function setCollapsed(item, state) {
+function setExpanded(item, state) {
     var li = asLI(item);
     if (!li) return;
+    var button = li.find('.expand-button:first');
     if (state == undefined) state = true;
-    li.addClass(state ? 'collapsed' : 'expanded')
-        .removeClass(!state ? 'collapsed' : 'expanded')
-        .find('.expand-button:first').text(state ? '▷' : '▲');
+    button.text(state ? '▲' : '▷');
+    if (!isFolder(li)) {
+        button.css({visibility:'hidden'});
+        return;        
+    }
+    button.css({visibility:''});
+    li.addClass(state ? 'expanded' : 'collapsed')
+        .removeClass(!state ? 'expanded' : 'collapsed');
     // deal with the container of children
     var ul = li.find('ul:first');
     if (state) {
-        ul.remove();
-    } 
-    else { 
         if (!ul.size())
             ul = $('<ul>').appendTo(li);
+    } 
+    else { 
+        ul.remove();
     }        
     return true;
-} // setCollapsed
+} // setExpanded
 
 function setItem(element, item) {
     var li = asLI(element);
     item.element = li[0];  // bind the item to the html element, so we can get to it 
     li.data({item:item});
     li.find('.label:first').text(item.name);
-    setCollapsed(li);
+    var icon = isFolder(item) ? 'folder' : item.itemKind;
+    if (icon=='file') {
+        icon = nameToType(item.name) || icon;
+    } 
+    li.find('.icon:first').html("<img src='"+getIconURI(icon)+"' />");
+    setExpanded(li, false);
     return element;
 } // setItem
 

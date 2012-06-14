@@ -41,12 +41,11 @@ srv.on('error', function(err){
     SET UP SOCKET.IO
 */
 
-var io = socket_io.listen(srv);
+var io = exports.io = socket_io.listen(srv);
 serving.setupSocketIO(io);
 io.sockets.on('connection', function(socket){
     //** sequences like these may be better with Step(). Try 
     socket.on('get list', function onGetList(data, cb){
-        dbg('get list', arguments);
         vfs.fromUrl(data.path, function(fnode) {
             getReplyForFolder(fnode, serving.ioOk.bind(this,cb));  
         });

@@ -1,0 +1,24 @@
+=== DONE
+
+=== DOING
+debugging console via telnet: still working very bad 
+improve in-source documentation
+    http://en.wikipedia.org/wiki/JSDoc
+    
+=== NEXT
+backend: vfs: key navigation: up, down, right(expand), left(collapse)
+backend: vfs: overlay icon to signalise temp nodes (based on nodeKind) 
+backend: replace $.rule with a custom function, then remove jquery plugin
+backend: rename expand-button in expansion-button
+
+=== AFTER
+handle non-working IO connection for both frontend and backend
+backend: vfs: complete manipulation
+consider coffee-script
+what wiki to use for development, github or rejetto.com?
+ensure the web apps are perfectly working offline, don't rely on online resources (or do it just as an option or gracefully degrade)
+modules that could be useful
+    for better performance on socket.io exchanges https://github.com/pgriess/node-msgpack
+    mime https://github.com/bentomas/node-mime
+    most used reloader https://github.com/remy/nodemon
+    browse the whole list at https://github.com/joyent/node/wiki/modules

@@ -12,7 +12,7 @@ String.prototype.format = function() {
     var args = arguments;
     if (typeof args[0] == 'object')
         args = args[0];
-    return this.replace(/\{([_ a-z0-9]+)(\|([^}]+))?\}/gi, function(){
+    return this.replace(/\{([-_ a-z0-9]+)(\|([^}]+))?\}/gi, function(){
         var ret = args[arguments[1]];
         var par = arguments[3]; 
         if (par) {
@@ -90,13 +90,13 @@ function extendObject(key, value) {
     });
 } // extendObject
 
-extendObject('keyOf', function(value) {
+extendObject('getKeyOf', function(value) {
     for (var i in this)
         if (this.hasOwnProperty(i) 
         && this[i] === value)
             return i;
     return null; 
-}); // Object.keyOf
+}); // Object.getKeyOf
 
 extendObject('forEach', function(cb) {
     for (var i in this)
@@ -124,7 +124,17 @@ extendObject('extend', function(from) {
             var destination = Object.getOwnPropertyDescriptor(from, name);
             Object.defineProperty(dest, name, destination);
         }
+        else {
+            dest[name] = from[name];
+        }
     });
     return this;
 }); // Object.extend
 
+extendObject('getProperties', function(){
+    var res = [];
+    for (var i in this)
+        if (this.hasOwnProperty(i))
+            res.push(this[i]);
+    return res; 
+}); // Object.getProperties

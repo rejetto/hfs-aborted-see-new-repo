@@ -28,10 +28,8 @@ $(function onJQ(){ // dom ready
          
         loadFolder(getURLfolder(), function onFolder(){ // folder ready
 
-            /* support for the BACK button.
-               When the user clicks the BACK button, the address bar changes going out of sync with the view. 
-               We fix it ASAP. I don't know an event for the address bar, so i'm using an setInterval.
-            */         
+            /* support for the BACK button: when the user clicks the BACK button, the address bar changes going out of   
+                sync with the view. We fix it ASAP. I don't know an event for the address bar, so i'm using an setInterval. */         
             setInterval(function onBackSupport(){
                 var shouldBe = getURLfolder(); 
                 if (currentFolder != shouldBe) {
@@ -41,6 +39,13 @@ $(function onJQ(){ // dom ready
 
         }); // don't redraw        
     });//socket connect
+    
+    socket.on('vfs.changed', function(data){
+        log('vfs.changed');
+        if (log(data).uri === log(currentFolder)) {
+            loadFolder();            
+        }
+    });
 
     // item hovering
     $('.item-link').live({
@@ -70,7 +75,7 @@ $(function onJQ(){ // dom ready
 });//dom ready
 
 // ask the server for the items list of the specified folder, then sort and display
-function loadFolder(path, cb) {
+function loadFolder(path /** optional */, cb /** optional */) {
     if (path) currentFolder = path;
     $('#folder').text(currentFolder);                
     socket.emit('get list', { path:currentFolder }, function onGetList(reply){
@@ -97,7 +102,7 @@ function convertList(serverReply) {
             case undefined: // no type is default type: file
                 o.type = 'file';
             case 'file': // for files, calculate specific type
-                o.type = nameToType(k) || 'file';
+                o.type = nameToType(k) || o.type;
                 break;
             case 'link':
                 o.url = o.resource; 
@@ -147,8 +152,9 @@ function redrawItems() {
 
 // build the DOM for the single item, applying possible filtering functions 
 function addItem(it) {
+    it.extend({'icon-file':getIconURI(it.icon)}); // make this additions before the hook, so it can change these too
     TPL('onObjectItem', it); // custom treatment, especially mode-based
-    $('<li>').append(TPL.item.format(it))
+    $('<li>').append(TPL.item.format(log(it)))
         .appendTo('#items')        
         .find('a.item-link').click(itemClickHandler);
 } // addItem            
@@ -160,7 +166,7 @@ function itemClickHandler() {
     if (h.substr(-1) == '/') {
         if (location.pathname != '/') { // reloads the page to have a neater URL
             location = '/#'+h.substr(1);
-            return;
+            return false;
         }
                 
         location.hash = (h.startsBy(location.pathname)) ? h.substr(location.pathname.length) : h;
@@ -172,17 +178,6 @@ function itemClickHandler() {
     }
     return true;
 } // itemClickHandler
-
-function nameToType(name) {
-    switch (getFileExt(name).low()) {
-        case 'jpg': case 'jpeg': case 'gif': case 'png':
-            return 'image';
-        case 'avi': case 'mpg': case 'mp4': case 'mov':
-            return 'video';
-        default:
-            return ''; 
-    }
-} // nameToType
 
 function updateMode(v){
     // if no value is passed, then read it from the DOM, otherwise write it in the DOM

@@ -68,6 +68,17 @@ function getFileExt(path) {
     return v ? v[1] : '';       
 } // getFileExt
 
+function nameToType(name) {
+    switch (getFileExt(name).low()) {
+        case 'jpg': case 'jpeg': case 'gif': case 'png':
+            return 'image';
+        case 'avi': case 'mpg': case 'mp4': case 'mov':
+            return 'video';
+        default:
+            return ''; 
+    }
+} // nameToType
+
 // tries to access a deep property of object, following array "path" as for properties names   
 function getDeep(obj, path) {
     for (var i=0, a=path, l=a.length; obj && i<l; ++i) {
@@ -102,6 +113,49 @@ round = function(v, decimals) {
 } // round
 
 function cmp(a,b) { return a>b ? 1 : a<b ? -1 : 0 }
+
+function getIconURI(icon) { return "/~/icons/files/"+icon+".png"; }
+
+function animate(object, property, endValue, options) {
+    options = options||{};
+    var freq = options.freq||30; // Hz
+    var duration = options.duration||0.5; // seconds
+    var steps = freq*duration; // number of steps to the end
+    if (!object || !property || !steps) return;
+    var trackingKey = 'animation_running_'+property;
+    var endParameter = { canceling:1 }; // at this stage, calling end() will inform the callback that we have been canceled by another animation 
+    
+    var end = function(){        
+        object[property] = endValue;
+        clearInterval(object[trackingKey]);
+        delete object[trackingKey];
+        if (typeof options.onEnd == 'function') {
+            options.onEnd(endParameter);
+        }
+    };
+    
+    if (object[trackingKey]) {
+        end(); // terminate previous        
+    }    
+    // we passed the stage of the cancellation
+    delete endParameter.canceling;
+    if (Object.keys(endParameter).length === 0) {
+        endParameter = undefined;
+    }
+    
+    var from;
+    var current;
+    var inc;
+    // track this operation. It would be nice to do it without touching, but we'd need an hash/id of the object, and i don't know a way to get it.            
+    object[trackingKey] = setInterval(function(){
+        if (typeof from === 'undefined') { // initialize
+            from = current = Number(object[property]);
+            inc = (endValue-from)/steps;
+        }
+        object[property] = current += inc;
+        if (! --steps) end();
+    }, 1000/freq);
+} // animate
 
 /* CURRENTLY UNUSED
 
