@@ -1,7 +1,7 @@
 hfs
 ===
 
-(this project is currently at a very early stage, and thus not useful yet)
+(this project is currently at a very early stage, only basic features are available)
 
 HTTP File Server
 

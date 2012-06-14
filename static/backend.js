@@ -13,7 +13,9 @@ $(function(){ // dom ready
     $(tpl.item).appendTo($('<ul>').appendTo('#vfs')); // create the root element
 
     // hide expansion button
-    expansionCss = $.rule('#vfs .expand-button { opacity:0 }').appendTo('style')[0].style;
+    var style = document.styleSheets[0];
+    style.addRule('#vfs .expand-button','opacity:0');
+    expansionCss = style.rules[style.rules.length-1].style;
     
     vfsUpdateButtons();
     setupEventHandlers();

@@ -8,12 +8,13 @@ improve in-source documentation
 === NEXT
 backend: vfs: key navigation: up, down, right(expand), left(collapse)
 backend: vfs: overlay icon to signalise temp nodes (based on nodeKind) 
-backend: replace $.rule with a custom function, then remove jquery plugin
 backend: rename expand-button in expansion-button
 
 === AFTER
+backend: vfs: rename
+vfs permissions
+backend: vfs: drag&drop
 handle non-working IO connection for both frontend and backend
-backend: vfs: complete manipulation
 consider coffee-script
 what wiki to use for development, github or rejetto.com?
 ensure the web apps are perfectly working offline, don't rely on online resources (or do it just as an option or gracefully degrade)
