@@ -147,7 +147,7 @@ function setupEventHandlers() {
     $('body').keydown(function(ev){
         log(ev);
         if (!(ev.target instanceof HTMLBodyElement)) return; // focused elsewhere, but the event propagated till here
-        if (!virtualFocusEventHandler(ev)) {
+        if (virtualFocusEventHandler(ev) === false) {
             ev.stopImmediatePropagation();
             return false;
         }
