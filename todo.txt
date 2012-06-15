@@ -1,21 +1,27 @@
 === DONE
+backend: vfs: key navigation: up, down, right(expand), left(collapse or up-level), home(first), end(last)
 
 === DOING
-debugging console via telnet: still working very bad 
+debugging console via telnet (still working very bad) 
 improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
     
 === NEXT
-backend: vfs: key navigation: up, down, right(expand), left(collapse)
+backend: vfs: key navigation: ensure the selected element is visible 
+backend: vfs: rename
+backend: vfs: remove
+    think of a good way to report removed items
+        * show them as "ghost" items
+        * show them in the properties of the folder                  
 backend: vfs: overlay icon to signalise temp nodes (based on nodeKind) 
 backend: rename expand-button in expansion-button
 
 === AFTER
-backend: vfs: rename
+? folder multi-bind
 vfs permissions
 backend: vfs: drag&drop
 handle non-working IO connection for both frontend and backend
-consider coffee-script
+? coffee-script
 what wiki to use for development, github or rejetto.com?
 ensure the web apps are perfectly working offline, don't rely on online resources (or do it just as an option or gracefully degrade)
 modules that could be useful

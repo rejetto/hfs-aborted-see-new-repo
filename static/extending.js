@@ -1,3 +1,29 @@
+///////// EXTENDING FUNCTION
+
+/** as function.bind(), but additional parameters are prepended instead of appended 
+ * @return {function} proxied function
+ */ 
+Function.prototype.prebind = function(){
+    var args = Array.prototype.slice.call(arguments);
+    var scope = args.shift();
+    var fun = this;  
+    return function(){
+        var moreArgs = Array.prototype.slice.call(arguments);
+        fun.apply(scope, moreArgs.concat(args));
+    };
+};
+
+if (!Function.prototype.bind)
+Function.prototype.bind = function(){
+    var args = Array.prototype.slice.call(arguments);
+    var scope = args.shift();
+    var fun = this;  
+    return function(){
+        var moreArgs = Array.prototype.slice.call(arguments);
+        fun.apply(scope, args.concat(moreArgs));
+    };
+};
+
 ///////// EXTENDING STRING
 
 /* return a new string filling "this" with arguments' values.
