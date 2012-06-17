@@ -39,22 +39,19 @@ $(function(){ // dom ready
         text, callback
 */ 
 function inputBox() {
-    var text, cb, a = arguments;
-    switch (typeof a[0]) {
-        case 'string':
-            text = a[0];
-            break;
-        default:
-            return false;
-    }        
+    var a = arguments, text = a[0], def, cb;
     switch (typeof a[1]) {
         case 'function':
             cb = a[1];
             break;
+        case 'string':
+            def = a[1];
+            cb = a[2];
+            break;
         default:
             return false;
     }
-    cb(prompt(text));
+    cb(prompt(text, def));
 } // inputBox
 
 function msgBox(message) { alert(message) }
@@ -64,7 +61,7 @@ function bindItem() {
     if (!it) return;
     inputBox('Enter path', function(s){
         if (!s) return;    
-        socket.emit('vfs.set', { uri:getURIfromItem(it), resource:s }, function(result){
+        socket.emit('vfs.set', { uri:getURIfrom(it), resource:s }, function(result){
             result.ok   
                 ? reloadVFS(it)
                 : msgBox(result.error);
@@ -72,11 +69,28 @@ function bindItem() {
     });
 } // bindItem
 
+function renameItem() {    
+    var it = getFirstSelectedItem();
+    if (!it || isRoot(it)) return;
+    inputBox('Enter new name', it.name, function(s){
+        s = $.trim(s);
+        if (!s || s == it.name) return; // no change
+        socket.emit('vfs.rename', { uri:getURIfrom(it), newName:s }, function(result){
+            if (!result.ok) {
+                msgBox(result.error);
+                return;
+            }
+            it.name = s; // update object
+            bindItemToDOM(it, it.element); // update GUI
+        });                
+    });
+}
+
 function addItem() {
     var it = getFirstSelectedFolder() || getRootItem();
     inputBox('Enter name or path', function(s){
         if (!s) return;    
-        socket.emit('vfs.add', { uri:getURIfromItem(it), resource:s }, function(result){
+        socket.emit('vfs.add', { uri:getURIfrom(it), resource:s }, function(result){
             if (!result.ok) {
                 msgBox(result.error);
                 return;
@@ -145,15 +159,15 @@ function setupEventHandlers() {
     });
     $('#vfs').hover(showExpansionButtons, hideExpansionButtons);
     $('body').keydown(function(ev){
-        log(ev);
         if (!(ev.target instanceof HTMLBodyElement)) return; // focused elsewhere, but the event propagated till here
         if (virtualFocusEventHandler(ev) === false) {
             ev.stopImmediatePropagation();
             return false;
         }
     });
-    $('#bind').click(bindItem);
+    $('#bindItem').click(bindItem);
     $('#addItem').click(addItem);
+    $('#renameItem').click(renameItem);
 } // setupEventHandlers
 
 function virtualFocusEventHandler(ev) {
@@ -210,6 +224,9 @@ function eventHandler_vfs_keydown(ev) {
             while ((v = getLastChild(go)).size()) {
                 go = v;
             }
+            break;
+        case 113: // F2
+            renameItem();
             break;
         default:
             log(ev.keyCode); 
@@ -336,15 +353,17 @@ function isFolder(it) {
     return it && it.itemKind.endsBy('folder');
 } // isFolder
 
+function isRoot(it) { return getURIfrom(it) == '/' }
+
 function isExpanded(x) { return asLI(x).hasClass('expanded') }
 
-function getURIfromItem(item) {
+function getURIfrom(item) {
     item = asItem(item);
     var p = getParentFromItem(item);
-    return (p ? getURIfromItem(p) : '')
+    return (p ? getURIfrom(p) : '') // recursion
         + encodeURI(item.name)
         + (p && isFolder(item) ? '/' : '');
-} // getURIfromItem
+} // getURIfrom
 
 /** get the item from the uri, but only if it's currently in our tree */
 function getItemFromURI(uri) {    
@@ -360,7 +379,7 @@ function getItemFromURI(uri) {
 
 function vfsUpdateButtons() {
     var it = getFirstSelectedItem();
-    enableButton('bind', it && it.itemKind == 'virtual folder'); 
+    enableButton('bindItem', it && it.itemKind == 'virtual folder'); 
 } // vfsUpdateButtons 
 
 function enableButton(name, condition) {
@@ -370,7 +389,7 @@ function enableButton(name, condition) {
 function reloadVFS(item) {
     var e = item ? asLI(item) : getRoot();
     e.find('ul').remove(); // remove possible children
-    socket.emit('vfs.get', { uri:item ? getURIfromItem(item) : '/', depth:1 }, function(data){
+    socket.emit('vfs.get', { uri:item ? getURIfrom(item) : '/', depth:1 }, function(data){
         if (!log(data)) return;
         bindItemToDOM(data, e);
         setExpanded(e);

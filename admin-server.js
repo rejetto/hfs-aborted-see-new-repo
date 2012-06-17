@@ -46,7 +46,7 @@ function nodeToObject(fnode, depth, cb) {
         return false;
     }
     assert(fnode instanceof vfsLib.FileNode, 'fnode');
-         
+
     var res = ceLib.extenduptolevel({name:fnode.name}, fnode, 1); // make a copy of the whole object without recurring, and overwriting the getter 'name' 
     delete res.parent;  // this makes a circular reference
     delete res.children; // in case we want the true listing, not just the children  
@@ -91,9 +91,29 @@ io.sockets.on('connection', function(socket){
 
     // set properties of a vfs item
     socket.on('vfs.set', function onSet(data, cb){
-        if (!data) return;
+        // assertions
+        if (serving.ioError(!data ? 'data'
+            : typeof data.uri != 'string' ? 'uri'
+            : typeof data.resource != 'string' ? 'resource'
+            : null, cb)) return;
+            
         vfs.fromUrl(data.uri, function(fnode) {
             fnode.set(data.resource, serving.ioOk.bind(this,cb));
+            vfsChanged(socket, data.uri);
+        });
+    });
+    
+    socket.on('vfs.rename', function onRename(data, cb){
+        // assertions
+        if (serving.ioError(!data ? 'data'
+            : typeof data.uri != 'string' ? 'uri'
+            : typeof data.newName != 'string' ? 'resource'
+            : data.uri == '/' ? 'cannot rename root'
+            : null, cb)) return;
+            
+        vfs.fromUrl(data.uri, function(fnode) {
+            fnode.name = data.newName;
+            serving.ioOk(cb);
             vfsChanged(socket, data.uri);
         });
     });
