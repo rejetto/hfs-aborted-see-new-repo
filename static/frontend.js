@@ -41,8 +41,9 @@ $(function onJQ(){ // dom ready
     });//socket connect
     
     socket.on('vfs.changed', function(data){
-        log('vfs.changed');
-        if (log(data).uri === log(currentFolder)) {
+        // it would be nicer to update only the changed item, but for now reloading the whole dir is easier  
+        var folder = data.uri.substr(0, data.uri.lastIndexOf('/')+1);
+        if (folder === currentFolder) {
             loadFolder();            
         }
     });

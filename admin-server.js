@@ -99,6 +99,10 @@ io.sockets.on('connection', function(socket){
             : null, cb)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
+            if (!fnode) {
+                serving.ioError('not found');
+                return;
+            }
             if (data.name) {
                 if (serving.ioError(typeof data.name != 'string' ? 'name' : null, cb)) return;
                 fnode.name = data.name;
@@ -108,7 +112,7 @@ io.sockets.on('connection', function(socket){
                 if (serving.ioError(typeof data.resource != 'string' ? 'resource' : null, cb)) return;
                 fnode.set(data.resource, serving.ioOk.bind(this,cb));
             }
-            vfsChanged(socket, data.uri);
+            vfsChanged(socket, fnode.getURI().excludeTrailing('/'));
         });
     });
     

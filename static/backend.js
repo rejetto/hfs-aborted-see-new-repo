@@ -25,8 +25,9 @@ $(function(){ // dom ready
         reloadVFS();
     });
     socket.on('vfs.changed', function(data){
-        if (!data) return; // something wrong
-        var it = getItemFromURI(data.uri);
+        if (!log(data)) return; // something wrong
+        var folder = data.uri.substr(0, data.uri.lastIndexOf('/')+1);
+        var it = getItemFromURI(folder);
         if (!it) return; // not in the visible tree: ignore
         if (!isExpanded(it)) return; // not expanded, we don't see its content, no need to reload
         reloadVFS(it);
