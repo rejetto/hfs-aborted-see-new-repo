@@ -1,3 +1,5 @@
+bugfix: backend: vfs: rename on temp nodes went lost
+
 === DOING
 debugging console via telnet (still working very bad) 
 improve in-source documentation
@@ -13,6 +15,7 @@ backend: vfs: overlay icon to signalise temp nodes (based on nodeKind)
 backend: rename expand-button in expansion-button
 
 === AFTER
+make the .expansion-button a fixed size
 ? folder multi-bind
 vfs permissions
 backend: vfs: drag&drop

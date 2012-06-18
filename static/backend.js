@@ -75,7 +75,7 @@ function renameItem() {
     inputBox('Enter new name', it.name, function(s){
         s = $.trim(s);
         if (!s || s == it.name) return; // no change
-        socket.emit('vfs.rename', { uri:getURIfrom(it), newName:s }, function(result){
+        socket.emit('vfs.set', { uri:getURIfrom(it), name:s }, function(result){
             if (!result.ok) {
                 msgBox(result.error);
                 return;

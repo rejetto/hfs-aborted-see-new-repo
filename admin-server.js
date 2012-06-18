@@ -15,8 +15,10 @@ exports.start = function(listenOn) {
 var srv = http.createServer(function(httpReq,httpRes){
     if (!serving.parseUrl(httpReq)) return;
 
+    /*
     var peer = httpReq.socket.address(); //  bug: currently peer.port is our listening port, while we want to show the port of the socket serving the connection 
     dbg('serving '+peer.address+':'+peer.port+' '+httpReq.url);
+    */
 
     if (serving.serveStatic(httpReq, httpRes)) return; // access to the special 'static' folder
     if (httpReq.uri == '/') {
@@ -47,8 +49,8 @@ function nodeToObject(fnode, depth, cb) {
     }
     assert(fnode instanceof vfsLib.FileNode, 'fnode');
 
-    var res = ceLib.extenduptolevel({name:fnode.name}, fnode, 1); // make a copy of the whole object without recurring, and overwriting the getter 'name' 
-    delete res.parent;  // this makes a circular reference
+    var res = ceLib.extenduptolevel({name:fnode.name}, fnode, 1); // make a copy of the whole object without recurring, and overwriting the getter 'name'
+    delete res._parent;  // this makes a circular reference
     delete res.children; // in case we want the true listing, not just the children  
     delete res.customName;
     if (res.deleted && !res.deleted.length) {
@@ -94,30 +96,22 @@ io.sockets.on('connection', function(socket){
         // assertions
         if (serving.ioError(!data ? 'data'
             : typeof data.uri != 'string' ? 'uri'
-            : typeof data.resource != 'string' ? 'resource'
             : null, cb)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
-            fnode.set(data.resource, serving.ioOk.bind(this,cb));
+            if (data.name) {
+                if (serving.ioError(typeof data.name != 'string' ? 'name' : null, cb)) return;
+                fnode.name = data.name;
+                serving.ioOk(cb);
+            }
+            else if (data.resource) {
+                if (serving.ioError(typeof data.resource != 'string' ? 'resource' : null, cb)) return;
+                fnode.set(data.resource, serving.ioOk.bind(this,cb));
+            }
             vfsChanged(socket, data.uri);
         });
     });
     
-    socket.on('vfs.rename', function onRename(data, cb){
-        // assertions
-        if (serving.ioError(!data ? 'data'
-            : typeof data.uri != 'string' ? 'uri'
-            : typeof data.newName != 'string' ? 'resource'
-            : data.uri == '/' ? 'cannot rename root'
-            : null, cb)) return;
-            
-        vfs.fromUrl(data.uri, function(fnode) {
-            fnode.name = data.newName;
-            serving.ioOk(cb);
-            vfsChanged(socket, data.uri);
-        });
-    });
-
     // add an item to the vfs
     socket.on('vfs.add', function onAdd(data, cb){
         // assertions
