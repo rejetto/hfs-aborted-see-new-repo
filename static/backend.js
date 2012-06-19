@@ -85,7 +85,37 @@ function renameItem() {
             bindItemToDOM(it, it.element); // update GUI
         });                
     });
-}
+} // renameItem
+
+function deleteItem() {    
+    var it = getFirstSelectedItem();
+    if (!it || isRoot(it) || it.deleting) return;
+    it.deleting = true;
+    socket.emit('vfs.delete', { uri:getURIfrom(it) }, function(result){
+        it.deleting = false;
+        if (!result.ok) {
+            msgBox(result.error);
+            return;
+        }
+        var noMoreChildren = false;
+        var li = asLI(it);
+        var go = li.next();
+        if (!go.size()) {
+            go = li.prev();            
+        }
+        if (!go.size()) {            
+            go = li.parent().closest('li');
+            noMoreChildren = true;
+        }
+        vfsSelect(go);
+        li.fadeOut(200, function(){
+            if (noMoreChildren) {
+                go.find('ul:first').append(tpl.noChildren);
+            }            
+            li.remove();
+        })        
+    });                
+} // deleteItem
 
 function addItem() {
     var it = getFirstSelectedFolder() || getRootItem();
@@ -169,6 +199,7 @@ function setupEventHandlers() {
     $('#bindItem').click(bindItem);
     $('#addItem').click(addItem);
     $('#renameItem').click(renameItem);
+    $('#deleteItem').click(deleteItem);
 } // setupEventHandlers
 
 function virtualFocusEventHandler(ev) {
@@ -201,7 +232,8 @@ function eventHandler_vfs_keydown(ev) {
             if (isExpanded(sel)) { // try first child 
                 if (go = getFirstChild(sel)) break;
             }
-            if ((go = sel.next()).size()) break; // try the sibling
+            go = sel.next() // try the sibling
+            if (go.size()) break; 
             go = sel.parent().closest('li').next(); // try the parent's sibling
             break;                
         case 37: // left
@@ -228,6 +260,9 @@ function eventHandler_vfs_keydown(ev) {
             break;
         case 113: // F2
             renameItem();
+            break;
+        case 46: // delete
+            deleteItem();
             break;
         default:
             log(ev.keyCode); 
@@ -380,7 +415,9 @@ function getItemFromURI(uri) {
 
 function vfsUpdateButtons() {
     var it = getFirstSelectedItem();
-    enableButton('bindItem', it && it.itemKind == 'virtual folder'); 
+    enableButton('bindItem', it && it.itemKind == 'virtual folder');
+    enableButton('renameItem', it && !isRoot(it)); 
+    enableButton('deleteItem', it && !isRoot(it)); 
 } // vfsUpdateButtons 
 
 function enableButton(name, condition) {
@@ -463,6 +500,7 @@ function addItemUnder(under, item) {
         var x = $(under).find('ul'); 
         under = x.size() ? x : $('<ul>').appendTo(under); 
     }
+    under.children('span.no-children').remove(); // remove any place holder
     var el = $(tpl.item).appendTo(under);                 
     return bindItemToDOM(item, el);
 } // addItemUnder

@@ -112,7 +112,7 @@ io.sockets.on('connection', function(socket){
                 if (serving.ioError(typeof data.resource != 'string' ? 'resource' : null, cb)) return;
                 fnode.set(data.resource, serving.ioOk.bind(this,cb));
             }
-            vfsChanged(socket, fnode.getURI().excludeTrailing('/'));
+            notifyVfsChange(socket, fnode.getURI().excludeTrailing('/'));
         });
     });
     
@@ -131,16 +131,38 @@ io.sockets.on('connection', function(socket){
             }
             fnode.add(data.resource, function(newNode){
                 serving.ioOk(cb, {item:nodeToObject(newNode)});
-                vfsChanged(socket, data.uri);
+                notifyVfsChange(socket, data.uri);
             });  
+        });
+    });
+    
+    // delete item, make it non-existent in the VFS
+    socket.on('vfs.delete', function onRemove(data, cb){
+        deleteUrl(data.uri, socket, function(res){
+            res === true
+                ? serving.ioOk(cb)
+                : ioError(cb, res);
         });
     });
     
 });
 
-vfsChanged = function(socket, uri) {
+deleteUrl = function(url, socket, cb) {
+    vfs.fromUrl(url, function(fnode){
+        if (!fnode) {
+            cb('uri not found');
+            return;
+        }
+        fnode.delete();
+        notifyVfsChange(socket, url);
+        cb(true);
+    });
+}; // deleteUrl
+
+notifyVfsChange = function(socket, uri) {
     dbg('vfs.changed');
     [socket.broadcast, require('./file-server').io.sockets].forEach(function(o){
         o.emit('vfs.changed', {uri:uri});
     });
-}; // vfsChanged
+}; // notifyVfsChange
+
