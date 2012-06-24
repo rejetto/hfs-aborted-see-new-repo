@@ -62,7 +62,7 @@ function bindItem() {
     if (!it) return;
     inputBox('Enter path', function(s){
         if (!s) return;    
-        socket.emit('vfs.set', { uri:getURIfrom(it), resource:s }, function(result){
+        socket.emit('vfs.set', { uri:getURI(it), resource:s }, function(result){
             result.ok   
                 ? reloadVFS(it)
                 : msgBox(result.error);
@@ -76,7 +76,7 @@ function renameItem() {
     inputBox('Enter new name', it.name, function(s){
         s = $.trim(s);
         if (!s || s == it.name) return; // no change
-        socket.emit('vfs.set', { uri:getURIfrom(it), name:s }, function(result){
+        socket.emit('vfs.set', { uri:getURI(it), name:s }, function(result){
             if (!result.ok) {
                 msgBox(result.error);
                 return;
@@ -91,37 +91,40 @@ function deleteItem() {
     var it = getFirstSelectedItem();
     if (!it || isRoot(it) || it.deleting) return;
     it.deleting = true;
-    socket.emit('vfs.delete', { uri:getURIfrom(it) }, function(result){
-        it.deleting = false;
+    asLI(it).attr('deleting',1);    
+    socket.emit('vfs.delete', { uri:getURI(it) }, function(result){
         if (!result.ok) {
+            it.deleting = false;
+            asLI(it).removeAttr('deleting');
             msgBox(result.error);
             return;
         }
-        var noMoreChildren = false;
-        var li = asLI(it);
-        var go = li.next();
-        if (!go.size()) {
-            go = li.prev();            
-        }
-        if (!go.size()) {            
-            go = li.parent().closest('li');
-            noMoreChildren = true;
-        }
-        vfsSelect(go);
         li.fadeOut(200, function(){
-            if (noMoreChildren) {
-                go.find('ul:first').append(tpl.noChildren);
+            var p = getParent(li); 
+            if (!getFirstChild(p).size()) { // deleted last item of a folder
+                p.find('ul:first').append(tpl.noChildren);
             }            
             li.remove();
         })        
     });                
+    var noMoreChildren = false;
+    var li = asLI(it);
+    var go = li.next(':not([deleting])');
+    if (!go.size()) {
+        go = li.prev(':not([deleting])');            
+    }
+    if (!go.size()) {            
+        noMoreChildren = true;
+        go = getParent(li);
+    }
+    vfsSelect(go.log());
 } // deleteItem
 
 function addItem() {
     var it = getFirstSelectedFolder() || getRootItem();
     inputBox('Enter name or path', function(s){
         if (!s) return;    
-        socket.emit('vfs.add', { uri:getURIfrom(it), resource:s }, function(result){
+        socket.emit('vfs.add', { uri:getURI(it), resource:s }, function(result){
             if (!result.ok) {
                 msgBox(result.error);
                 return;
@@ -216,7 +219,6 @@ function virtualFocusEventHandler(ev) {
 } // virtualFocusEventHandler
 
 function eventHandler_vfs_keydown(ev) {
-    getParent = function (el) { return el.parent().closest('li') }
     var sel = asLI(getFirstSelectedItem());  
     var go;
     switch (ev.keyCode) {
@@ -238,7 +240,7 @@ function eventHandler_vfs_keydown(ev) {
             if (go.size()) break;
             // try the parent's sibling
             var v = sel;
-            while ((v = getParent(v)).log().size()) {
+            while ((v = getParent(v)).size()) {
                 if (v.next().size()) {
                     go = v.next();
                     break;
@@ -287,7 +289,7 @@ function eventHandler_vfs_keydown(ev) {
 
 function vfsSelect(el) {
     $('#vfs .selected').removeClass('selected');
-    asLI(el).addClass('selected').scrollToSee();
+    asLI(el).addClass('selected').scrollToSee({duration:'fast'});
     vfsUpdateButtons();                
 } // vfsSelect
 
@@ -393,26 +395,27 @@ function toType(to, x) {
     }
 } // setType
 
-function getParentFromItem(it) {
-    return $(it.element).parent().closest('li').data('item');
-} // getParentFromItem
+function getParent(it) {
+    var p = asLI(it).parent().closest('li');
+    return toType(getType(it), p); 
+} // getParent
 
 function isFolder(it) {
     it = asItem(it);
     return it && it.itemKind.endsBy('folder');
 } // isFolder
 
-function isRoot(it) { return getURIfrom(it) == '/' }
+function isRoot(it) { return getURI(it) == '/' }
 
 function isExpanded(x) { return asLI(x).hasClass('expanded') }
 
-function getURIfrom(item) {
+function getURI(item) {
     item = asItem(item);
-    var p = getParentFromItem(item);
-    return (p ? getURIfrom(p) : '') // recursion
+    var p = getParent(item);
+    return (p ? getURI(p) : '') // recursion
         + encodeURI(item.name)
         + (p && isFolder(item) ? '/' : '');
-} // getURIfrom
+} // getURI
 
 /** get the item from the uri, but only if it's currently in our tree */
 function getItemFromURI(uri) {    
@@ -440,7 +443,7 @@ function enableButton(name, condition) {
 function reloadVFS(item) {
     var e = item ? asLI(item) : getRoot();
     e.find('ul').remove(); // remove possible children
-    socket.emit('vfs.get', { uri:item ? getURIfrom(item) : '/', depth:1 }, function(data){
+    socket.emit('vfs.get', { uri:item ? getURI(item) : '/', depth:1 }, function(data){
         if (!log(data)) return;
         bindItemToDOM(data, e);
         setExpanded(e);

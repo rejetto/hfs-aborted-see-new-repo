@@ -1,6 +1,3 @@
-backend: vfs: key navigation: the selected element is always visible and other improvements 
-
-
 === DOING
 debugging console via telnet (still working very bad) 
 improve in-source documentation
