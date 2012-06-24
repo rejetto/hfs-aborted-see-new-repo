@@ -216,13 +216,14 @@ function virtualFocusEventHandler(ev) {
 } // virtualFocusEventHandler
 
 function eventHandler_vfs_keydown(ev) {
+    getParent = function (el) { return el.parent().closest('li') }
     var sel = asLI(getFirstSelectedItem());  
     var go;
     switch (ev.keyCode) {
         case 38: // up
             go = sel.prev();
             if (go.size()) break;
-            go = sel.parent().closest('li');
+            go = getParent(sel);
             break;                
         case 40: // down
             if (!sel.size()) { // initialize with root
@@ -230,16 +231,24 @@ function eventHandler_vfs_keydown(ev) {
                 break;
             }
             if (isExpanded(sel)) { // try first child 
-                if (go = getFirstChild(sel)) break;
+                go = getFirstChild(sel);
+                if (go.size()) break;
             }
             go = sel.next() // try the sibling
-            if (go.size()) break; 
-            go = sel.parent().closest('li').next(); // try the parent's sibling
+            if (go.size()) break;
+            // try the parent's sibling
+            var v = sel;
+            while ((v = getParent(v)).log().size()) {
+                if (v.next().size()) {
+                    go = v.next();
+                    break;
+                } 
+            }  
             break;                
         case 37: // left
             isFolder(sel) && isExpanded(sel)
                 ? setExpanded(sel, false)
-                : go = sel.parent().closest('li');
+                : go = getParent(sel);
             break;
         case 39: // right
             if (!isFolder(sel)) break;
@@ -251,8 +260,9 @@ function eventHandler_vfs_keydown(ev) {
             go = getRoot();
             break;
         case 35: // end
+            go = getLastChild(getParent(sel));
+            if (go.size() && !go.is(sel)) break;
             go = getRoot();
-            var v;
             // go down till it's possible
             while ((v = getLastChild(go)).size()) {
                 go = v;
@@ -277,7 +287,7 @@ function eventHandler_vfs_keydown(ev) {
 
 function vfsSelect(el) {
     $('#vfs .selected').removeClass('selected');
-    asLI(el).addClass('selected');
+    asLI(el).addClass('selected').scrollToSee();
     vfsUpdateButtons();                
 } // vfsSelect
 
@@ -344,7 +354,10 @@ function getFirstChild(parent, pattern /** optional */) {
     return toType(inputType, res); // convert output to the same type of the input
 } // getFirstChild
 
-function getLastChild(parent) { return toType(getType(parent), asLI(parent).find('ul>li:last')) }
+function getLastChild(parent) {
+    var e = asLI(parent).find('ul:first>li:last');
+    return toType(getType(parent), e);
+} // getLastChild
 
 /** determine the type of the element */
 function getType(x) {

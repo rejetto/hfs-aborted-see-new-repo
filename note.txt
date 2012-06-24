@@ -31,10 +31,15 @@ system integration
             - folder list
             - navigate folders (get folder by folder, or whole tree for speed?)
             - search
-            - select & action (archive, delete, rename...)            
+            - select & action (archive, delete, rename...)
+           
+=== GUI
+libreries to evaluate
+    extjs
+    amplesdk http://www.amplesdk.com/examples/markup/xul/
+    pergola http://www.dotuscomus.com/pergola/examples.html            
 
 === FRONT END
-extjs + socket.io
 login (cookie based)
 
 switch on url resource type
