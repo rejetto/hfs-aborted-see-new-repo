@@ -259,6 +259,10 @@ function eventHandler_vfs_keydown(ev) {
                 : expandAndLoad(sel);
             break;
         case 36: // home
+            if (!isRoot(sel)) {
+                go = getFirstChild(getParent(sel));
+                if (go.size()) break;
+            }
             go = getRoot();
             break;
         case 35: // end
@@ -289,7 +293,7 @@ function eventHandler_vfs_keydown(ev) {
 
 function vfsSelect(el) {
     $('#vfs .selected').removeClass('selected');
-    asLI(el).addClass('selected').scrollToSee({duration:'fast'});
+    asLI(el).addClass('selected').scrollToMe({duration:'fast'});
     vfsUpdateButtons();                
 } // vfsSelect
 

@@ -9,7 +9,6 @@ backend: vfs: think of a good way to report removed items
     * show them in the properties of the folder
     * show a single item "removed elements", similar to a folder, collapsed by default                      
 backend: vfs: overlay icon to signalise temp nodes (based on nodeKind) 
-backend: rename expand-button in expansion-button
 
 === AFTER
 bug: backend: vfs: items with existing name shouldn't be allowed (e.g. add same virtual folder twice)

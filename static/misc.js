@@ -18,7 +18,8 @@ jQuery.fn.isOverflowed = function(HorV) {
 }; // isOverflowed
 
 /** ensure the element is verticaly visible */ 
-jQuery.fn.scrollToSee = function(options){
+jQuery.fn.scrollToMe = function(options){
+    if (!this.size()) return;
     var top = this.offset().top;
     var bottom = top+this.outerHeight();
     var go;
@@ -28,10 +29,11 @@ jQuery.fn.scrollToSee = function(options){
     else if (bottom > scrollY+innerHeight) { // below?
         go = Math.min(top, bottom-innerHeight);
     }
-    else return this; // no action  
-    $('html,body').stop(true).animate({ scrollTop: go }, options);
+    if (go) {
+        $('html,body').stop(true).animate({ scrollTop: go }, options);
+    }
     return this;
-}; // scrollToSee
+}; // scrollToMe
 
 var log = function() {
     var last;
