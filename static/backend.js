@@ -101,10 +101,10 @@ function deleteItem() {
         }
         li.fadeOut(200, function(){
             var p = getParent(li); 
+            li.remove();
             if (!getFirstChild(p).size()) { // deleted last item of a folder
                 p.find('ul:first').append(tpl.noChildren);
             }            
-            li.remove();
         })        
     });                
     var noMoreChildren = false;
