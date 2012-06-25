@@ -32,9 +32,10 @@ system integration
             - navigate folders (get folder by folder, or whole tree for speed?)
             - search
             - select & action (archive, delete, rename...)
+- the web apps must perfectly working offline, don't rely on online resources (or do it just as an option or gracefully degrade)
            
 === GUI
-libreries to evaluate
+libraries to evaluate
     extjs
     amplesdk http://www.amplesdk.com/examples/markup/xul/
     pergola http://www.dotuscomus.com/pergola/examples.html            

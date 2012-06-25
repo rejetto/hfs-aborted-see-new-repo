@@ -12,3 +12,4 @@ a img { border:0; } /* conform IE */
 #vfs .no-children:before,
 #vfs .no-children:after { content:"..."; }
 #vfs li .icon img { height:1.5em; margin-right:0.5em; vertical-align:middle;  }
+#vfs .deleted-items { font-size:7pt; }

@@ -126,7 +126,7 @@ io.sockets.on('connection', function(socket){
 
         vfs.fromUrl(data.uri, function(fnode) {
             if (!fnode) {
-                ioError(cb, 'uri not found');
+                serving.ioError('uri not found', cb);
                 return;
             }
             fnode.add(data.resource, function(newNode){
@@ -138,11 +138,14 @@ io.sockets.on('connection', function(socket){
     
     // delete item, make it non-existent in the VFS
     socket.on('vfs.delete', function onRemove(data, cb){
-        deleteUrl(data.uri, socket, function(res){
-            res === true
-                ? serving.ioOk(cb)
-                : ioError(cb, res);
+        deleteUrl(data.uri, socket, function(err, fnode, isDynamicItem){
+            err ? serving.ioError(err, cb)
+                : serving.ioOk(cb, {dynamicItem: fnode.isTemp() && path.basename(fnode.resource) }) // if we just deleted a dynamic item, the GUI may need an extra refresh
         });
+    });
+    
+    socket.on('info.get', function onInfo(data, cb){
+        serving.ioOk(cb, {caseSensitiveFileNames:misc.caseSensitiveFileNames});
     });
     
 });
@@ -153,9 +156,11 @@ deleteUrl = function(url, socket, cb) {
             cb('uri not found');
             return;
         }
+        var n = dbg('before', fnode.deleted.length);
         fnode.delete();
+        var isDynamicItem = (n !== dbg('later', fnode.deleted.length)); 
         notifyVfsChange(socket, url);
-        cb(true);
+        cb(null, fnode, isDynamicItem);
     });
 }; // deleteUrl
 
