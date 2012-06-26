@@ -1,5 +1,4 @@
 === DOING
-bug: backend: vfs: items with existing name shouldn't be allowed (e.g. add same virtual folder twice)
 backend: vfs: think of a good way to report removed items
     * show them as "ghost" items (cons: takes a lot of space)
     * show them in the properties of the folder (cons: you have to open properties) 

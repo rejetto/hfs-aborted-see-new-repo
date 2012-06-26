@@ -129,6 +129,11 @@ io.sockets.on('connection', function(socket){
                 serving.ioError('uri not found', cb);
                 return;
             }
+            var already = fnode.getChildByName(path.basename(data.resource)); // check if it already exists
+            if (already) {
+                serving.ioError('already exists', cb);
+                return;
+            }            
             fnode.add(data.resource, function(newNode){
                 serving.ioOk(cb, {item:nodeToObject(newNode)});
                 notifyVfsChange(socket, data.uri);
@@ -138,7 +143,7 @@ io.sockets.on('connection', function(socket){
     
     // delete item, make it non-existent in the VFS
     socket.on('vfs.delete', function onRemove(data, cb){
-        deleteUrl(data.uri, socket, function(err, fnode, isDynamicItem){
+        deleteUrl(data.uri, socket, function(err, fnode){
             err ? serving.ioError(err, cb)
                 : serving.ioOk(cb, {dynamicItem: fnode.isTemp() && path.basename(fnode.resource) }) // if we just deleted a dynamic item, the GUI may need an extra refresh
         });
@@ -156,11 +161,9 @@ deleteUrl = function(url, socket, cb) {
             cb('uri not found');
             return;
         }
-        var n = dbg('before', fnode.deleted.length);
         fnode.delete();
-        var isDynamicItem = (n !== dbg('later', fnode.deleted.length)); 
         notifyVfsChange(socket, url);
-        cb(null, fnode, isDynamicItem);
+        cb(null, fnode);
     });
 }; // deleteUrl
 
