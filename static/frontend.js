@@ -41,8 +41,9 @@ $(function onJQ(){ // dom ready
     });//socket connect
     
     socket.on('vfs.changed', function(data){
-        // it would be nicer to update only the changed item, but for now reloading the whole dir is easier  
-        var folder = data.uri.substr(0, data.uri.lastIndexOf('/')+1);
+        log(data);
+        // it would be nicer to update only the changed item, but for now easily reload the whole dir  
+        var folder = data.uri.substr(0, data.uri.lastIndexOf('/', data.uri.length-2)+1);
         if (folder === currentFolder) {
             loadFolder();            
         }
@@ -155,7 +156,7 @@ function redrawItems() {
 function addItem(it) {
     it.extend({'icon-file':getIconURI(it.icon)}); // make this additions before the hook, so it can change these too
     TPL('onObjectItem', it); // custom treatment, especially mode-based
-    $('<li>').append(TPL.item.format(log(it)))
+    $('<li>').append(TPL.item.format(it))
         .appendTo('#items')        
         .find('a.item-link').click(itemClickHandler);
 } // addItem            
@@ -198,7 +199,6 @@ function updateOrder(v) {
     currentOrder = v; // global
     setCookie('order', v);  // remember
     if (v) {
-        log('remove');
         $('#order option[value=]').remove(); // after we have sorted the items there's no way to return to the original order, so let's hide this option
     }
     sortItems();
