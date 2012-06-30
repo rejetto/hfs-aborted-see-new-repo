@@ -300,7 +300,7 @@ function eventHandler_vfs_keydown(ev) {
             deleteItem();
             break;
         default:
-            log(ev.keyCode); 
+            //log(ev.keyCode); 
             return; // unsupported key, don't handle                        
     }
     if (go && go.size()) {
