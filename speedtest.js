@@ -2,7 +2,8 @@
  * @fileOverview This should show the best performance we can expect
  * @author Massimo Melina <a@rejetto.com> 
  */ 
-var myGigFile = '/bigfile.avi';
+var v = process.argv;
+var myGigFile = v.length >= 3 ? v[2] : '/bigfile.avi';
 
 var http = require('http');
 var fs = require('fs');
@@ -14,6 +15,7 @@ var srv = http.createServer(function(httpReq,httpRes){
     fs.createReadStream(myGigFile).pipe(httpRes);
 });
 
-srv.listen(8, '0.0.0.0', function onListen(){
-    console.log('listening');
+var port = 888;
+srv.listen(port, '0.0.0.0', function onListen(){
+    console.log('listening on '+port);
 });
