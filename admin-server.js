@@ -143,9 +143,38 @@ io.sockets.on('connection', function(socket){
     
     // delete item, make it non-existent in the VFS
     socket.on('vfs.delete', function onRemove(data, cb){
-        deleteUrl(data.uri, socket, function(err, fnode){
-            err ? serving.ioError(err, cb)
-                : serving.ioOk(cb, {dynamicItem: fnode.isTemp() && path.basename(fnode.resource) }) // if we just deleted a dynamic item, the GUI may need an extra refresh
+        vfs.fromUrl(data.uri, function(fnode){
+            if (!fnode) {
+                serving.ioError('uri not found', cb)
+                return;
+            }
+            fnode.getFolder(function(folder){
+                fnode.delete();
+                // if we just deleted a dynamic item, the GUI may need an extra refresh
+                serving.ioOk(cb, { 
+                    dynamicItem: fnode.isTemp() && path.basename(fnode.resource),
+                    folderDeletedCount: folder.deleted ? folder.deleted.length : 0
+                });
+                notifyVfsChange(socket, folder.getURI()); 
+            });
+        });
+    });
+
+    // restore a temp item that was deleted
+    socket.on('vfs.restore', function onRestore(data, cb){
+        vfs.fromUrl(data.uri, function(fnode){
+            if (!fnode) {
+                serving.ioError('uri not found', cb)
+                return;
+            }
+            if (!fnode.restoreDeleted(data.resource)) {
+                serving.ioError('failed');
+                return;
+            }
+            fnode.createFileNodeFromRelativeUri(data.resource, function(child){
+                serving.ioOk(cb, {item:dbg(child)});
+                notifyVfsChange(socket, fnode.getURI());
+            });
         });
     });
     
@@ -154,18 +183,6 @@ io.sockets.on('connection', function(socket){
     });
     
 });
-
-deleteUrl = function(url, socket, cb) {
-    vfs.fromUrl(url, function(fnode){
-        if (!fnode) {
-            cb('uri not found');
-            return;
-        }
-        fnode.delete();
-        notifyVfsChange(socket, url);
-        cb(null, fnode);
-    });
-}; // deleteUrl
 
 notifyVfsChange = function(socket, uri) {
     dbg('vfs.changed');

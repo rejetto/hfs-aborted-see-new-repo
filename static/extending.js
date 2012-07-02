@@ -105,7 +105,28 @@ String.prototype.in = function(s) {
         case 'string': return s.indexOf(this) >= 0;
         default: return false;
     }    
-}; // String.in  
+}; // String.in
+
+///////// EXTENDING ARRAY
+
+if (!Array.prototype.forEach)
+Array.prototype.forEach = function(fun) {
+    if (typeof fun != "function")
+        throw new TypeError();
+    for (var i=0, l=this.length; i<l; ++i) {
+        fun.call(this[i], this[i], i, this);
+    }
+}; // Array.forEach
+
+if (!Array.prototype.some)
+Array.prototype.some = function(cb) {
+    for (var i=0, l=this.length; i<l; ++i) {
+        if (cb ? cb(this[i]) : this[i]) {
+            return true;
+        }
+    }
+    return false;
+};  // Array.some
 
 ///////// EXTENDING OBJECT
 

@@ -1,13 +1,13 @@
 var socket = io.connect(window.location.origin);
 
 var tpl = {
-    item: "<li>"
+    item: "<li class='item'>"
         +"<span class='expansion-button'></span>"
         +"<span class='icon'></span>"
         +"<span class='label'></span>"
+        +"<div class='deleted-items'></div>"
     +"</li>",
     noChildren: "<span class='no-children'>nothing</span>",
-    deletedItems: "<div class='deleted-items'></div>",
 };
 
 var virtualFocus = 'vfs'; 
@@ -101,6 +101,8 @@ function deleteItem() {
     it.deleting = true;
     var li = asLI(it);
     var parent = getParent(li); 
+    var pit = asItem(parent);
+    var oldNumber = pit.deleted.length;
     li.attr('deleting',1);    
     socket.emit('vfs.delete', { uri:getURI(it) }, function(result){
         if (!log(result).ok) {
@@ -108,10 +110,8 @@ function deleteItem() {
             li.removeAttr('deleting');
             msgBox(result.error);
             return;
-        }
-        if (result.dynamicItem) {        
-            var pit = asItem(parent);
-            if (!pit.deleted) pit.deleted = [];
+        }        
+        if (oldNumber !== result.folderDeletedCount) {
             pit.deleted.push(result.dynamicItem);
             updateDeletedItems(parent);
         }
@@ -133,6 +133,17 @@ function deleteItem() {
     vfsSelect(go);
 } // deleteItem
 
+function restoreItem() {
+    var item = $(this).text();
+    var folder = $(this).closest('li.item');
+    socket.emit('vfs.restore', { uri:getURI(folder), resource:item }, function(result){
+        if (!log(result).ok) return;
+        updateDeletedItems(folder);
+        addItemUnder(folder, result.item);
+        // we are not going to automatically select the restored item, so it's easier to restore more files 
+    });
+} // restoreItem
+
 function addItem() {
     var it = getFirstSelectedFolder() || getRootItem();
     inputBox('Enter name or path', function(s){
@@ -143,10 +154,12 @@ function addItem() {
                 return;
             }
             if (result.item.nodeKind === 'temp') { // this is a dynamic element, was actually restored from the "deleted" list
+                updateDeletedItems(it);
+                /* see if we can avoid reloading and just make this update above
                 reloadVFS(it, function(){
                     vfsSelect(getItemFromURI(result.item.name, it));
                 });
-                return;
+                return;*/
             }
             setExpanded(it);
             addItemUnder(it, result.item);
@@ -170,7 +183,7 @@ function setupEventHandlers() {
     $('#vfs').click(function(){
         vfsSelect(null); // deselect
     });
-    $('#vfs li').live({
+    $('#vfs li.item').live({
         click: function(ev){
             ev.stopImmediatePropagation();
             removeBrowserSelection();
@@ -209,6 +222,25 @@ function setupEventHandlers() {
         mouseout: function(ev){
             $(this).removeClass('hovered');
         }
+    });
+    $('#vfs .deleted-items').live({
+        click: function(ev) {
+            if ($(this).children('ul').size()) return;
+            var item = asItem(this);
+            var ul = $('<ul>');
+            item.deleted.forEach(function(v){
+                $('<li>').text(v).appendTo(ul);                
+            });
+            ul.hide().appendTo(this).slideDown();            
+        },
+        mouseleave: function(ev) {
+            $(this).children('ul').slideUp(function(){ $(this).remove() });
+        }        
+    });
+    $('#vfs .deleted-items li').live({
+        click: restoreItem,
+        mouseover: function(){ $(this).addClass('hover') },
+        mouseout: function(){ $(this).removeClass('hover') }
     });
     $('#vfs').hover(showExpansionButtons, hideExpansionButtons);
     $('body').keydown(function(ev){
@@ -469,18 +501,13 @@ function enableButton(name, condition) {
 
 function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
-    e.find('ul:first').remove(); // remove possible children
+    e.children('ul').empty().append(tpl.noChildren); // remove possible children
     socket.emit('vfs.get', { uri:item ? getURI(item) : '/', depth:1 }, function(data){
         if (!data) return;
         bindItemToDOM(data, e);
         setExpanded(e);
-        var ul = e.find('ul:first');
-        if (!data.children.length) {
-            $(tpl.noChildren).appendTo(ul);
-            return;
-        }
         data.children.forEach(function(it){
-            addItemUnder(ul, it);            
+            addItemUnder(e, it);            
         });
         if (cb) cb();
     });    
@@ -524,7 +551,10 @@ function expandAndLoad(li) {
 
 function bindItemToDOM(item, element) {
     var li = asLI(element);
-    item.element = li[0];  // bind the item to the html element, so we can get to it 
+    item.element = li[0];  // bind the item to the html element, so we can get to it
+    if (isFolder(item) && !item.deleted) {
+        item.deleted = []; // having this always present will ease the rest of the code
+    }   
     li.data({item:item});
     li.find('.label:first').text(item.name);
     var icon = isFolder(item) ? 'folder' : item.itemKind;
@@ -541,29 +571,20 @@ function updateDeletedItems(it) {
     var li = asLI(it);
     it = asItem(it);
     var el = li.children('.deleted-items');
-    if (!it.deleted) {
-        el.remove();
+    if (!it.deleted || !it.deleted.length) {
+        el.hide();
         return;
     }
-    if (!el.size()) {
-        el = $(tpl.deletedItems);
-        var ul = li.children('ul');
-        ul.size() ? ul.before(el)
-            : li.append(el); 
-                   
-    }
-    var separator = ' • ';
-    el.text( 'Deleted'+separator+it.deleted.join(separator) ); 
+    el.text( 'Deleted: {0} item(s)'.format(it.deleted.length)).show(); 
 } // updateDeletedItems
 
 function addItemUnder(under, item) {
-    if (under.element) { // it's an item
-        under = under.element; // we want the element
-        assert(under, 'under'); // we only work with items linked to elements
-        // the UL element is the place for children, have one or create it  
-        var x = $(under).find('ul:first'); 
-        under = x.size() ? x : $('<ul>').appendTo(under); 
-    }
+    if (!item) return;
+    under = asLI(under);
+    // the UL element is the place for children, have one or create it  
+    var x = under.children('ul'); 
+    under = x.size() ? x : $('<ul>').appendTo(under);
+     
     under.children('span.no-children').remove(); // remove any place holder
     var el = $(tpl.item).appendTo(under);                 
     return bindItemToDOM(item, el);
