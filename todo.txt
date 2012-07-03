@@ -1,16 +1,11 @@
 === DOING
-bug: backend.js: add could be a restore
-bug: restoring a deleted items creates a virtual folder instead                            
-backend: vfs: think of a good way to report removed items
-    * show them as "ghost" items (cons: takes a lot of space)
-    * show them in the properties of the folder (cons: you have to open properties) 
-    * show a single item "removed elements", similar to a folder, collapsed by default
-bug: when a dynamic item is deleted, then readded, it should be treated properly 
+bug: backend: when a dynamic item is deleted, then re-added, it should be treated properly 
 debugging console via telnet (still working very bad) 
 improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
 
 === NEXT
+backend: vfs: specific icon for the "deleted" folder
 backend: vfs: overlay icon to signalise temp nodes (based on nodeKind) 
 
 === AFTER

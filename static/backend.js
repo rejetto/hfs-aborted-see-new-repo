@@ -1,11 +1,10 @@
 var socket = io.connect(window.location.origin);
 
 var tpl = {
-    item: "<li class='item'>"
+    item: "<li>"
         +"<span class='expansion-button'></span>"
         +"<span class='icon'></span>"
         +"<span class='label'></span>"
-        +"<div class='deleted-items'></div>"
     +"</li>",
     noChildren: "<span class='no-children'>nothing</span>",
 };
@@ -13,7 +12,7 @@ var tpl = {
 var virtualFocus = 'vfs'; 
 
 $(function(){ // dom ready
-    $(tpl.item).appendTo($('<ul>').appendTo('#vfs')); // create the root element
+    $(tpl.item).addClass('item').appendTo($('<ul>').appendTo('#vfs')); // create the root element
 
     // hide expansion button
     var style = document.styleSheets[0];
@@ -29,7 +28,7 @@ $(function(){ // dom ready
         });
     });
     socket.on('vfs.changed', function(data){
-        if (!log(data)) return; // something wrong
+        if (!log('vfs.changed',data)) return; // something wrong
         var folder = data.uri.substr(0, data.uri.lastIndexOf('/')+1);
         var it = getItemFromURI(folder);
         if (!it) return; // not in the visible tree: ignore
@@ -80,7 +79,7 @@ function bindItem() {
 
 function renameItem() {    
     var it = getFirstSelectedItem();
-    if (!it || isRoot(it)) return;
+    if (!it || isRoot(it) || isDeleted(it)) return;
     inputBox('Enter new name', it.name, function(s){
         s = $.trim(s);
         if (!s || s == it.name) return; // no change
@@ -95,49 +94,66 @@ function renameItem() {
     });
 } // renameItem
 
-function deleteItem() {    
-    var it = getFirstSelectedItem();
+function deleteItem() {
+    // who's gonna be deleted?
+    var li = getFirstSelected();
+    if (isDeleted(li)) { // this a deleted one, what we really want is restore it
+        restoreItem();
+        return;
+    }
+    // we're not going to delete items that are root, or we are already deleting, or that are not! (special items)
+    var it = asItem(li);
     if (!it || isRoot(it) || it.deleting) return;
-    it.deleting = true;
-    var li = asLI(it);
+    it.deleting = true; // mark it, so we avoid overlapping operations
     var parent = getParent(li); 
     var pit = asItem(parent);
-    var oldNumber = pit.deleted.length;
-    li.attr('deleting',1);    
+    var oldNumber = pit.deletedItems.length; // we'll use this to see if the number has changed at the end
+    li.attr('deleting',1).fadeTo(100, 0.5); // mark it visually and at DOM level  
+    vfsSelectNearby(li); // renew selection
+    // server, please do it
     socket.emit('vfs.delete', { uri:getURI(it) }, function(result){
-        if (!log(result).ok) {
+        if (!log(result).ok) { // something went wrong
+            // ugh, forget it.... (unmark)
             it.deleting = false;
             li.removeAttr('deleting');
+            // let the user know
             msgBox(result.error);
             return;
-        }        
-        if (oldNumber !== result.folderDeletedCount) {
-            pit.deleted.push(result.dynamicItem);
-            updateDeletedItems(parent);
         }
-        li.fadeOut(200, function(){
+        // if this number has changed, then we need to do a little extra work: the item became a deleted item.
+        if (oldNumber !== result.folderDeletedCount) {
+            pit.deletedItems.push(result.dynamicItem);
+            updateDeletedItems(parent, result.dynamicItem);
+        }
+        // GUI refresh
+        li.fadeOut(100, function(){
             li.remove();
-            if (getFirstChild(parent).size()) return; 
-            parent.find('ul:first').append(tpl.noChildren); // deleted last item of a folder
+            if (!getFirstChild(parent).size()) { 
+                parent.find('ul:first').append(tpl.noChildren); // deleted last item of a folder
+            }
         })        
-    });                
-    var noMoreChildren = false;
-    var go = li.next(':not([deleting])');
-    if (!go.size()) {
-        go = li.prev(':not([deleting])');            
-    }
-    if (!go.size()) {            
-        noMoreChildren = true;
-        go = parent;
-    }
-    vfsSelect(go);
+    });
 } // deleteItem
 
-function restoreItem() {
-    var item = $(this).text();
-    var folder = $(this).closest('li.item');
-    socket.emit('vfs.restore', { uri:getURI(folder), resource:item }, function(result){
-        if (!log(result).ok) return;
+function restoreItem(it) {
+    if (it === undefined)
+        it = getFirstSelectedItem();
+    if (!it || !isDeleted(it)) return;
+    var li = $(it.element); 
+    var folder = li.closest('li.item');
+    vfsSelectNearby(li);
+    socket.emit('vfs.restore', { uri:getURI(folder), resource:it.name }, function(result){
+        if (!result.ok) return;
+        // do the job locally: remove the element from the array
+        var a = asItem(folder).deletedItems;
+        var i = a.length;
+        while (i--) {
+            if (sameFileName(a[i].excludeTrailing('/'), it.name)) {
+                a.splice(i,1);
+            }
+        }
+        // refresh GUI
+        li.remove();
         updateDeletedItems(folder);
         addItemUnder(folder, result.item);
         // we are not going to automatically select the restored item, so it's easier to restore more files 
@@ -155,11 +171,6 @@ function addItem() {
             }
             if (result.item.nodeKind === 'temp') { // this is a dynamic element, was actually restored from the "deleted" list
                 updateDeletedItems(it);
-                /* see if we can avoid reloading and just make this update above
-                reloadVFS(it, function(){
-                    vfsSelect(getItemFromURI(result.item.name, it));
-                });
-                return;*/
             }
             setExpanded(it);
             addItemUnder(it, result.item);
@@ -167,6 +178,18 @@ function addItem() {
         });
     });
 } // addItem
+
+function vfsSelectNearby(li) {
+    var selector = 'li:not([deleting])';
+    var go = li.next(selector);
+    if (!go.size()) {
+        go = li.prev(selector);
+    }
+    if (!go.size()) {            
+        go = getParent(li);
+    }
+    vfsSelect(go);
+} // vfsSelectNearby
 
 function hideExpansionButtons() { animate(expansionCss, 'opacity', 0) }
 
@@ -178,12 +201,16 @@ function showExpansionButtons(state /** optional */) {
     animate(expansionCss, 'opacity', 1, {duration:0.2});
 } // showExpansionButtons              
 
+function expandOrCollapseFolder(li) {
+    isExpanded(li) ? setExpanded(li, false) : expandAndLoad(li);
+}
+
 function setupEventHandlers() {
 
     $('#vfs').click(function(){
         vfsSelect(null); // deselect
     });
-    $('#vfs li.item').live({
+    $('#vfs li').live({
         click: function(ev){
             ev.stopImmediatePropagation();
             removeBrowserSelection();
@@ -192,9 +219,9 @@ function setupEventHandlers() {
         dblclick: function(ev){
             ev.stopImmediatePropagation();
             removeBrowserSelection();
-            var it = getFirstSelectedItem();
+            var it = getFirstSelected();
             if (isFolder(it)) {
-                reloadVFS(it);
+                expandOrCollapseFolder(it);
             }
         },
         mouseover: function(ev){
@@ -213,7 +240,7 @@ function setupEventHandlers() {
             ev.stopImmediatePropagation();
             removeBrowserSelection();
             var li = $(ev.target).closest('li');
-            isExpanded(li) ? setExpanded(li, false) : expandAndLoad(li);
+            expandOrCollapseFolder(li);
         },
         mouseover: function(ev){
             $('#vfs .expansion-button.hovered').removeClass('hovered');
@@ -222,25 +249,6 @@ function setupEventHandlers() {
         mouseout: function(ev){
             $(this).removeClass('hovered');
         }
-    });
-    $('#vfs .deleted-items').live({
-        click: function(ev) {
-            if ($(this).children('ul').size()) return;
-            var item = asItem(this);
-            var ul = $('<ul>');
-            item.deleted.forEach(function(v){
-                $('<li>').text(v).appendTo(ul);                
-            });
-            ul.hide().appendTo(this).slideDown();            
-        },
-        mouseleave: function(ev) {
-            $(this).children('ul').slideUp(function(){ $(this).remove() });
-        }        
-    });
-    $('#vfs .deleted-items li').live({
-        click: restoreItem,
-        mouseover: function(){ $(this).addClass('hover') },
-        mouseout: function(){ $(this).removeClass('hover') }
     });
     $('#vfs').hover(showExpansionButtons, hideExpansionButtons);
     $('body').keydown(function(ev){
@@ -270,7 +278,7 @@ function virtualFocusEventHandler(ev) {
 } // virtualFocusEventHandler
 
 function eventHandler_vfs_keydown(ev) {
-    var sel = asLI(getFirstSelectedItem());  
+    var sel = getFirstSelected();  
     var go;
     switch (ev.keyCode) {
         case 38: // up
@@ -357,10 +365,11 @@ function getSelectedItems() {
     return res;
 } // getSelectedItems
 
-function getFirstSelectedItem() {
-    var res = getSelectedItems();
-    return res ? res[0] : false;
-} // getFirstSelectedItem
+function getSelected() { return $('#vfs .selected') }
+
+function getFirstSelected() { return $('#vfs .selected:first') }
+
+function getFirstSelectedItem() { return getFirstSelected().data('item') } 
 
 function getFirstSelectedFolder() {
     var res = getSelectedItems();
@@ -399,6 +408,7 @@ function getFirstChild(parent, pattern /** optional */) {
     parent.find('ul:first>li').each(function(idx,el){    
         var child = asItem(el)
         if (pattern) { // do we have a pattern?
+            if (!child) return;
             // does it match?
             for (var k in pattern) {
                 if (!pattern.hasOwnProperty(k)) continue;
@@ -408,7 +418,7 @@ function getFirstChild(parent, pattern /** optional */) {
                 if (!match) return; // ...nope, skip
             }
         } 
-        res = child; // found! mark it
+        res = el; // found! mark it
         return false; // stop it 
     });
     return toType(inputType, res); // convert output to the same type of the input
@@ -459,6 +469,9 @@ function getParent(it) {
 } // getParent
 
 function isFolder(it) {
+    if (asLI(it).hasClass('deleted-items')) {
+        return true;
+    }
     it = asItem(it);
     return it && it.itemKind.endsBy('folder');
 } // isFolder
@@ -466,6 +479,8 @@ function isFolder(it) {
 function isRoot(it) { return getURI(it) == '/' }
 
 function isExpanded(x) { return asLI(x).hasClass('expanded') }
+
+function isDeleted(x) { return asLI(x).closest('.deleted-items').size() }
 
 function getURI(item) {
     item = asItem(item);
@@ -489,9 +504,11 @@ function getItemFromURI(uri, from) {
 } // getItemFromURI 
 
 function vfsUpdateButtons() {
-    var it = getFirstSelectedItem();
-    enableButton('bindItem', it && it.itemKind == 'virtual folder');
-    enableButton('renameItem', it && !isRoot(it)); 
+    var li = getFirstSelected();
+    var it = asItem(li);
+    enableButton('addItem', !li.size() || it && !it.deleted); 
+    enableButton('bindItem', it && it.itemKind === 'virtual folder');
+    enableButton('renameItem', it && !isRoot(it) && !isDeleted(it)); 
     enableButton('deleteItem', it && !isRoot(it)); 
 } // vfsUpdateButtons 
 
@@ -503,9 +520,10 @@ function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
     e.children('ul').empty().append(tpl.noChildren); // remove possible children
     socket.emit('vfs.get', { uri:item ? getURI(item) : '/', depth:1 }, function(data){
-        if (!data) return;
+        if (!log('vfs.get',data)) return;
         bindItemToDOM(data, e);
         setExpanded(e);
+        updateDeletedItems(e);
         data.children.forEach(function(it){
             addItemUnder(e, it);            
         });
@@ -514,18 +532,20 @@ function reloadVFS(item, cb) {
 } // reloadVFS
 
 /** util function for those functions who want to accept several types but work with the $(LI)  */
-function asLI(x) { return toType('jquery', x) }
+function asLI(x) { return toType('jquery', x).closest('li') }
 
 /** util function for those functions who want to accept several types but work with the $(LI)  */
 function asItem(x) { return toType('item', x) }
 
 function setExpanded(item, state) {
+    if (state == undefined) state = true;
     var li = asLI(item);
     if (!li.size()) return;
+    item = asItem(item);
     var button = li.find('.expansion-button:first');
-    if (state == undefined) state = true;
     button.text(state ? '▲' : '▷');
-    if (!isFolder(li)) {
+    if (!isFolder(li) 
+    || item && item.deleted) {  // deleted folders are not expandable
         button.css({visibility:'hidden'});
         return;        
     }
@@ -545,15 +565,22 @@ function setExpanded(item, state) {
 } // setExpanded
 
 function expandAndLoad(li) {
+    li = asLI(li);
     setExpanded(li);
-    reloadVFS(li);
+    if (li.hasClass('item'))
+        return reloadVFS(li);
+    if (li.hasClass('deleted-items')) {
+        asItem(getParent(li)).deletedItems.forEach(function(name){            
+            addItemUnder(li, name);
+        });
+    }
 } // expandAndLoad
 
 function bindItemToDOM(item, element) {
     var li = asLI(element);
     item.element = li[0];  // bind the item to the html element, so we can get to it
-    if (isFolder(item) && !item.deleted) {
-        item.deleted = []; // having this always present will ease the rest of the code
+    if (isFolder(item) && !item.deletedItems) {
+        item.deletedItems = []; // having this always present will ease the rest of the code
     }   
     li.data({item:item});
     li.find('.label:first').text(item.name);
@@ -562,31 +589,97 @@ function bindItemToDOM(item, element) {
         icon = nameToType(item.name) || icon;
     } 
     li.find('.icon:first').html("<img src='"+getIconURI(icon)+"' />");
-    updateDeletedItems(item);
+    if (isFolder(item)) {
+        updateDeletedItems(item);
+    }
     setExpanded(li, false);
     return element;
 } // bindItemToDOM
 
-function updateDeletedItems(it) {
-    var li = asLI(it);
-    it = asItem(it);
-    var el = li.children('.deleted-items');
-    if (!it.deleted || !it.deleted.length) {
-        el.hide();
+/** updates the pseudo-folder containing removed temp items */
+function updateDeletedItems(it, adding) {
+    var folder = asLI(it);
+    var ul = folder.children('ul');
+    it = asItem(it); 
+    if (!it.deletedItems || !it.deletedItems.length) { // no items?
+        // remove the pseudo-folder
+        if (!ul.size()) return;
+        var li = ul.children('li.deleted-items');
+        if (!li.size()) return;
+        if (getFirstSelected().is(li)) { 
+            vfsSelectNearby(li);
+        }
+        li.remove();
+        // if there is no more children in the containing folder, remove the UL as well
+        if (!ul.children().size()) {
+            ul.remove();
+        }
         return;
     }
-    el.text( 'Deleted: {0} item(s)'.format(it.deleted.length)).show(); 
+    // ensure there's a UL for the containing folder
+    if (!ul.size()) {
+        ul = $('<ul>').appendTo(folder);
+    }
+    // ensure there's a LI of the pseudo-folder 
+    var li = ul.children('li.deleted-items');
+    if (!li.size()) {  
+        li = $(tpl.item).addClass('deleted-items').prependTo(ul); 
+        li.find('.icon:first').html("<img src='"+getIconURI('folder')+"' />");
+        setExpanded(li, false);
+    }
+    // update the label                
+    li.find('.label:first').text('Deleted: {0} item(s)'.format(it.deletedItems.length));
+    // eventually add the item
+    if (adding && isExpanded(li)) {
+        addItemUnder(li, adding); 
+    }
 } // updateDeletedItems
 
-function addItemUnder(under, item) {
-    if (!item) return;
+/** put a new element under $under with bound object $item 
+ * @position {undefined|string} admitted values: 'sorted' (default), 'top', 'bottom'
+ */
+function addItemUnder(under, item, position) {
+    if (!item) return false;
+    if (position === undefined) position = 'sorted';
     under = asLI(under);
+    if (under.hasClass('deleted-items')
+    && typeof item == 'string') { // automatic construction of the special item
+        item = {
+            deleted: true,
+            itemKind: item.endsBy('/') ? 'folder' : 'file',
+            name: item.excludeTrailing('/'),
+        };
+    }
+
     // the UL element is the place for children, have one or create it  
     var x = under.children('ul'); 
     under = x.size() ? x : $('<ul>').appendTo(under);
+    
      
     under.children('span.no-children').remove(); // remove any place holder
-    var el = $(tpl.item).appendTo(under);                 
+    var el = $(tpl.item).addClass(item.deleted ? 'deleted' : 'item');
+    var beforeThis; // where to put the new item
+    if (position.isIn('top','sorted')) { // both require to put the item after special items (so skip them)
+        beforeThis = getFirstChild(under); // go down one level
+        // skip special items
+        while (beforeThis.size() && !beforeThis.hasClass('item')) { 
+            beforeThis = beforeThis.next();
+        }
+    }
+    if (position === 'sorted') {
+        // skip elements until we find one that has a "higher" name (case-insensitively)
+        var name = item.name.low(); 
+        while (beforeThis.size()
+            && beforeThis.hasClass('item')
+            && beforeThis.find('.label').text().low() < name) {
+            beforeThis = beforeThis.next();
+        }
+    }
+    // add the item at the calculated position, or at the end
+    (beforeThis && beforeThis.size())
+        ? el.insertBefore(beforeThis)
+        : el.appendTo(under);
+    // do the final setup
     return bindItemToDOM(item, el);
 } // addItemUnder
 

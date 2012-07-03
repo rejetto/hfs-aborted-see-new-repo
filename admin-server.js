@@ -53,19 +53,23 @@ function nodeToObject(fnode, depth, cb) {
     delete res._parent;  // this makes a circular reference
     delete res.children; // in case we want the true listing, not just the children  
     delete res.customName;
-    if (res.deleted && !res.deleted.length) {
-        delete res.deleted; // save on it
+    // save bandwidth by not sending some empty properties
+    if (res.deletedItems
+    && !res.deletedItems.length) {
+        delete res.deletedItems; 
     }
     if (!res.resource) {
         delete res.resource;
     }
-
+    // depth is not required, or not possible, our job ends here
     if (!depth
     || !fnode.isFolder()) {
         if (cb) cb(res);
         return res;    
     }
+    // this is necessarily an async procedure: require a callback
     assert(cb, 'cb');
+    // recur on children
     fnode.dir(function(items){
         res.children = [];
         async.forEach(items.getProperties(), function(e, doneThis){
@@ -86,6 +90,10 @@ serving.setupSocketIO(io);
 io.sockets.on('connection', function(socket){
     
     socket.on('vfs.get', function onGet(data, cb) {
+        if (serving.ioError(!data ? data
+            : typeof data.uri != 'string' ? 'uri'
+            : null, cb)) return;
+            
         vfs.fromUrl(data.uri, function(fnode) {
             nodeToObject(fnode, data.depth, cb);                
         });
@@ -120,8 +128,8 @@ io.sockets.on('connection', function(socket){
     socket.on('vfs.add', function onAdd(data, cb){
         // assertions
         if (serving.ioError(!data ? 'data'
-            : typeof data.uri != 'string' ? 'uri'
-            : typeof data.resource != 'string' ? 'resource'
+            : typeof data.uri !== 'string' ? 'uri'
+            : typeof data.resource !== 'string' ? 'resource'
             : null, cb)) return;
 
         vfs.fromUrl(data.uri, function(fnode) {
@@ -143,6 +151,11 @@ io.sockets.on('connection', function(socket){
     
     // delete item, make it non-existent in the VFS
     socket.on('vfs.delete', function onRemove(data, cb){
+        // assertions
+        if (serving.ioError(!data ? 'data'
+            : typeof data.uri !== 'string' ? 'uri'
+            : null, cb)) return;
+
         vfs.fromUrl(data.uri, function(fnode){
             if (!fnode) {
                 serving.ioError('uri not found', cb)
@@ -151,9 +164,9 @@ io.sockets.on('connection', function(socket){
             fnode.getFolder(function(folder){
                 fnode.delete();
                 // if we just deleted a dynamic item, the GUI may need an extra refresh
-                serving.ioOk(cb, { 
-                    dynamicItem: fnode.isTemp() && path.basename(fnode.resource),
-                    folderDeletedCount: folder.deleted ? folder.deleted.length : 0
+                serving.ioOk(cb, {
+                    dynamicItem: fnode.isTemp() && path.basename(fnode.resource)+(fnode.isFolder() ? '/' : ''), // trailing slash to denote folders
+                    folderDeletedCount: folder.deletedItems ? folder.deletedItems.length : 0
                 });
                 notifyVfsChange(socket, folder.getURI()); 
             });
@@ -162,6 +175,12 @@ io.sockets.on('connection', function(socket){
 
     // restore a temp item that was deleted
     socket.on('vfs.restore', function onRestore(data, cb){
+        // assertions
+        if (serving.ioError(!data ? 'data'
+            : typeof data.uri !== 'string' ? 'uri'
+            : typeof data.resource !== 'string' ? 'resource'
+            : null, cb)) return;
+
         vfs.fromUrl(data.uri, function(fnode){
             if (!fnode) {
                 serving.ioError('uri not found', cb)
@@ -172,7 +191,7 @@ io.sockets.on('connection', function(socket){
                 return;
             }
             fnode.createFileNodeFromRelativeUri(data.resource, function(child){
-                serving.ioOk(cb, {item:dbg(child)});
+                serving.ioOk(cb, {item:child});
                 notifyVfsChange(socket, fnode.getURI());
             });
         });
