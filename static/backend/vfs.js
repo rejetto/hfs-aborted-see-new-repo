@@ -44,24 +44,22 @@ function deleteItem() {
     if (!it || isRoot(it) || it.deleting) return;
     it.deleting = true; // mark it, so we avoid overlapping operations
     var parent = getParent(li); 
-    var pit = asItem(parent);
-    var oldNumber = pit.deletedItems.length; // we'll use this to see if the number has changed at the end
+    var oldNumber = asItem(parent).deletedItems.length; // we'll use this to see if the number has changed at the end
     li.attr('deleting',1).fadeTo(100, 0.5); // mark it visually and at DOM level  
     vfsSelectNearby(li); // renew selection
     // server, please do it
     socket.emit('vfs.delete', { uri:getURI(it) }, function(result){
-        if (!log(result).ok) { // something went wrong
+        if (!log('vfs.delete',result).ok) { // something went wrong
             // ugh, forget it.... (unmark)
             it.deleting = false;
-            li.removeAttr('deleting');
+            li.removeAttr('deleting').fadeIn(100);
             // let the user know
             msgBox(result.error);
             return;
         }
         // if this number has changed, then we need to do a little extra work: the item became a deleted item.
         if (oldNumber !== result.folderDeletedCount) {
-            pit.deletedItems.push(result.dynamicItem);
-            updateDeletedItems(parent, result.dynamicItem);
+            updateDeletedItems(parent, {adding:result.dynamicItem});
         }
         // GUI refresh
         li.fadeOut(100, function(){
@@ -83,13 +81,7 @@ function restoreItem(it) {
     socket.emit('vfs.restore', { uri:getURI(folder), resource:it.name }, function(result){
         if (!result.ok) return;
         // do the job locally: remove the element from the array
-        var a = asItem(folder).deletedItems;
-        var i = a.length;
-        while (i--) {
-            if (sameFileName(a[i].excludeTrailing('/'), it.name)) {
-                a.splice(i,1);
-            }
-        }
+        removeFromDeletedItems(asItem(folder), it.name);
         // refresh GUI
         li.remove();
         updateDeletedItems(folder);
@@ -103,12 +95,12 @@ function addItem() {
     inputBox('Enter name or path', function(s){
         if (!s) return;    
         socket.emit('vfs.add', { uri:getURI(it), resource:s }, function(result){
-            if (!log(result).ok) {
+            if (!log('vfs.add',result).ok) {
                 msgBox(result.error);
                 return;
             }
             if (result.item.nodeKind === 'temp') { // this is a dynamic element, was actually restored from the "deleted" list
-                updateDeletedItems(it);
+                updateDeletedItems(it, { removing:basename(s) });
             }
             setExpanded(it);
             addItemUnder(it, result.item);
@@ -436,15 +428,18 @@ function enableButton(name, condition) {
 
 function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
-    e.children('ul').empty().append(tpl.noChildren); // remove possible children
     socket.emit('vfs.get', { uri:item ? getURI(item) : '/', depth:1 }, function(data){
         if (!log('vfs.get',data)) return;
         bindItemToDOM(data, e);
         setExpanded(e);
-        updateDeletedItems(e);
-        data.children.forEach(function(it){
-            addItemUnder(e, it);            
-        });
+        if (data.children.length) {
+            data.children.forEach(function(it){
+                addItemUnder(e, it);            
+            });
+        }
+        else {
+            e.children('ul').empty().append(tpl.noChildren); // remove possible children
+        }
         if (cb) cb();
     });    
 } // reloadVFS
@@ -456,7 +451,7 @@ function asLI(x) { return toType('jquery', x).closest('li') }
 function asItem(x) { return toType('item', x) }
 
 function setExpanded(item, state) {
-    if (state == undefined) state = true;
+    if (state === undefined) state = true;
     var li = asLI(item);
     if (!li.size()) return;
     item = asItem(item);
@@ -472,11 +467,11 @@ function setExpanded(item, state) {
         .removeClass(!state ? 'expanded' : 'collapsed');
     // deal with the container of children
     var ul = li.find('ul:first');
-    if (state) {
+    if (state) { // expanded
         if (!ul.size())
             ul = $('<ul>').appendTo(li);
     } 
-    else { 
+    else {
         ul.remove();
     }        
     return true;
@@ -510,15 +505,23 @@ function bindItemToDOM(item, element) {
     if (isFolder(item)) {
         updateDeletedItems(item);
     }
-    setExpanded(li, false);
     return element;
 } // bindItemToDOM
 
 /** updates the pseudo-folder containing removed temp items */
-function updateDeletedItems(it, adding) {
+function updateDeletedItems(it, options) {
+    options = options||{};
     var folder = asLI(it);
     var ul = folder.children('ul');
     it = asItem(it); 
+
+    if (options.adding) {
+        it.deletedItems.push(options.adding);
+    }
+    if (options.removing) {
+        removeFromDeletedItems(it, options.removing);
+    }
+
     if (!it.deletedItems || !it.deletedItems.length) { // no items?
         // remove the pseudo-folder
         if (!ul.size()) return;
@@ -547,9 +550,13 @@ function updateDeletedItems(it, adding) {
     }
     // update the label                
     li.find('.label:first').text('Deleted: {0} item(s)'.format(it.deletedItems.length));
-    // eventually add the item
-    if (adding && isExpanded(li)) {
-        addItemUnder(li, adding); 
+    // some more work if the pseudo-folder is expanded    
+    if (!isExpanded(li)) return; 
+    if (options.adding) {
+        addItemUnder(li, options.adding); 
+    }
+    if (options.removing) {
+        getFirstChild(li, {name:options.removing}).remove();        
     }
 } // updateDeletedItems
 
@@ -598,6 +605,20 @@ function addItemUnder(under, item, position) {
         ? el.insertBefore(beforeThis)
         : el.appendTo(under);
     // do the final setup
-    return bindItemToDOM(item, el);
+    bindItemToDOM(item, el);
+    setExpanded(el, false);    
 } // addItemUnder
 
+function removeFromDeletedItems(item, name) {
+    item = asItem(item);
+    if (!item) return false;
+    var a = item.deletedItems;
+    var i = a.length;
+    name = name.excludeTrailing('/');
+    while (i--) {
+        if (sameFileName(a[i].excludeTrailing('/'), name)) {
+            a.splice(i,1);
+            return true;
+        }
+    }
+} // removeFromDeletedItems

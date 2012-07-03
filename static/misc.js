@@ -185,6 +185,15 @@ function removeBrowserSelection() {
     }
 } // removeBrowserSelection
 
+function basename(path) {
+    path = path.excludeTrailing('/');
+    var i = path.length-1;
+    i = Math.max(path.lastIndexOf('/',i), path.lastIndexOf('\\',i));
+    return path.substr(i+1);
+} // basename
+
+function dirname(path) { return path.substr(0, path.length-basename(path)) }
+
 /* CURRENTLY UNUSED
 
 // reports how many pixels the element is exceeding the viewport, on the right side

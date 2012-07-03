@@ -1,5 +1,4 @@
 === DOING
-bug: backend: when a dynamic item is deleted, then re-added, it should be treated properly 
 debugging console via telnet (still working very bad) 
 improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
