@@ -114,10 +114,10 @@ function formatBytes(n) {
     if (isNaN(Number(n))) return 'N/A';
     var x = [ '', 'K', 'M', 'G', 'T' ];
     var prevMul = 1;
-    var mul = prevMul<<10;
+    var mul = prevMul*1024;
     for (var i=0, l=x.length; i<l && n > mul; ++i) {
-        prevMul = mul
-        mul <<= 10;
+        prevMul = mul;
+        mul *= 1024;
     }
     n /= prevMul;
     var c = x[i];
