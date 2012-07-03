@@ -7,8 +7,7 @@ function loadJS(libs) {
 
 loadJS('extending|misc');
 
-var socket = io.connect(window.location.origin);
-var currentFolder, listFromServer, foldersBefore=1;
+var socket, currentFolder, listFromServer, foldersBefore=1;
 
 // this object will hold all the customizable stuff, that is added in file "tpl.js"  
 var TPL = function(event) {
@@ -29,7 +28,10 @@ function getURLfolder() {
 } // getURLfolder
 
 $(function onJQ(){ // dom ready
+    socket = io.connect(window.location.origin);
+    
     socket.on('connect', function onIO(){ // socket ready
+        log('connected');
         // try to restore last options
         updateOrder(getCookie('order'));
         updateMode(getCookie('mode'));
