@@ -175,6 +175,16 @@ function animate(object, property, endValue, options) {
     }, 1000/freq);
 } // animate
 
+function removeBrowserSelection() {
+    if (window.getSelection) {  // all browsers, except IE before version 9
+        return getSelection().removeAllRanges();
+    }
+    if (document.selection.createRange) {        // Internet Explorer
+        var range = document.selection.createRange();
+        document.selection.empty();
+    }
+} // removeBrowserSelection
+
 /* CURRENTLY UNUSED
 
 // reports how many pixels the element is exceeding the viewport, on the right side

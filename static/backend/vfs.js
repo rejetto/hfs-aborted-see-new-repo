@@ -1,68 +1,6 @@
-var socket = io.connect(window.location.origin);
-
-var tpl = {
-    item: "<li>"
-        +"<span class='expansion-button'></span>"
-        +"<span class='icon'></span>"
-        +"<span class='label'></span>"
-    +"</li>",
-    noChildren: "<span class='no-children'>nothing</span>",
-};
-
-var virtualFocus = 'vfs'; 
-
-$(function(){ // dom ready
-    $(tpl.item).addClass('item').appendTo($('<ul>').appendTo('#vfs')); // create the root element
-
-    // hide expansion button
-    var style = document.styleSheets[0];
-    style.addRule('#vfs .expansion-button','opacity:0');
-    expansionCss = style.rules[style.rules.length-1].style;
-    
-    vfsUpdateButtons();
-    setupEventHandlers();
-    socket.on('connect', function(){ // socket ready
-        socket.emit('info.get', {}, function(data){
-            serverInfo = data||{};
-            reloadVFS();
-        });
-    });
-    socket.on('vfs.changed', function(data){
-        if (!log('vfs.changed',data)) return; // something wrong
-        var folder = data.uri.substr(0, data.uri.lastIndexOf('/')+1);
-        var it = getItemFromURI(folder);
-        if (!it) return; // not in the visible tree: ignore
-        if (!isExpanded(it)) return; // not expanded, we don't see its content, no need to reload
-        reloadVFS(it);
-    });
-});
-
 function sameFileName(a,b) {
     return serverInfo.caseSensitiveFileNames ? a === b : a.same(b);
 } // sameFileName
-
-/* display a dialog for input.
-    Currently just a wrapper of prompt().
-    Arguments:
-        text, callback
-*/ 
-function inputBox() {
-    var a = arguments, text = a[0], def, cb;
-    switch (typeof a[1]) {
-        case 'function':
-            cb = a[1];
-            break;
-        case 'string':
-            def = a[1];
-            cb = a[2];
-            break;
-        default:
-            return false;
-    }
-    cb(prompt(text, def));
-} // inputBox
-
-function msgBox(message) { alert(message) }
 
 function bindItem() { 
     var it = getFirstSelectedFolder();
@@ -203,10 +141,10 @@ function showExpansionButtons(state /** optional */) {
 
 function expandOrCollapseFolder(li) {
     isExpanded(li) ? setExpanded(li, false) : expandAndLoad(li);
-}
+} // expandOrCollapseFolder
 
-function setupEventHandlers() {
-
+// some event handlers
+$(function(){
     $('#vfs').click(function(){
         vfsSelect(null); // deselect
     });
@@ -251,31 +189,11 @@ function setupEventHandlers() {
         }
     });
     $('#vfs').hover(showExpansionButtons, hideExpansionButtons);
-    $('body').keydown(function(ev){
-        if (!(ev.target instanceof HTMLBodyElement)) return; // focused elsewhere, but the event propagated till here
-        if (virtualFocusEventHandler(ev) === false) {
-            ev.stopImmediatePropagation();
-            return false;
-        }
-    });
     $('#bindItem').click(bindItem);
     $('#addItem').click(addItem);
     $('#renameItem').click(renameItem);
     $('#deleteItem').click(deleteItem);
-} // setupEventHandlers
-
-function virtualFocusEventHandler(ev) {
-    // there's a couple of possible event handlers to be called
-    var v = 'eventHandler_'+virtualFocus;
-    var fns = [v+'_'+ev.type, v];
-     
-    for (var i=0, l=fns.length; i<l; ++i) {        
-        var fn = window[fns[i]]; // try to get it
-        if (typeof fn == 'function') { // if it exists, run it
-            if (fn(ev) === false) return false; // it can decide to interrupt the event handling
-        }
-    }
-} // virtualFocusEventHandler
+});
 
 function eventHandler_vfs_keydown(ev) {
     var sel = getFirstSelected();  
@@ -683,12 +601,3 @@ function addItemUnder(under, item, position) {
     return bindItemToDOM(item, el);
 } // addItemUnder
 
-function removeBrowserSelection() {
-    if (window.getSelection) {  // all browsers, except IE before version 9
-        return getSelection().removeAllRanges();
-    }
-    if (document.selection.createRange) {        // Internet Explorer
-        var range = document.selection.createRange();
-        document.selection.empty();
-    }
-} // removeBrowserSelection

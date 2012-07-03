@@ -1,3 +1,12 @@
+function loadJS(libs) {
+    libs = libs.split('|');
+    for (var i=libs.length; i--;) {
+        document.write("<script src='/~/"+libs[i]+".js'></script>");
+    } 
+}
+
+loadJS('extending|misc');
+
 var socket = io.connect(window.location.origin);
 var currentFolder, listFromServer, foldersBefore=1;
 
@@ -10,6 +19,8 @@ var TPL = function(event) {
         newArgs.push(a[i]);         
     fun.apply(this, newArgs);
 };
+
+loadJS('frontend/tpl');
 
 // understand the requested folder from the URL
 function getURLfolder() {
