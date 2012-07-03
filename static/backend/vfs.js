@@ -39,6 +39,11 @@ function deleteItem() {
         restoreItem();
         return;
     }
+    if (li.hasClass('deleted-items')) {
+        if (!confirmBox('Restore all items?')) return;
+        restoreAllItems(li);        
+        return;
+    }
     // we're not going to delete items that are root, or we are already deleting, or that are not! (special items)
     var it = asItem(li);
     if (!it || isRoot(it) || it.deleting) return;
@@ -89,6 +94,15 @@ function restoreItem(it) {
         // we are not going to automatically select the restored item, so it's easier to restore more files 
     });
 } // restoreItem
+
+function restoreAllItems(li) {
+    assert(li, 'li');
+    li = li.closest('li.item');
+    socket.emit('vfs.restore', { uri:getURI(li), resource:'*' }, function(result){
+        if (!result.ok) return;
+        reloadVfs(li);
+    });    
+} // restoreAllItems
 
 function addItem() {
     var it = getFirstSelectedFolder() || getRootItem();

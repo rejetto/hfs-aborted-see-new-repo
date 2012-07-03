@@ -186,6 +186,12 @@ io.sockets.on('connection', function(socket){
                 serving.ioError('uri not found', cb)
                 return;
             }
+            if (data.resource === '*') { // special case, restore all
+                fnode.deletedItems = [];
+                serving.ioOk(cb);
+                notifyVfsChange(socket, fnode.getURI());
+                return;
+            }
             if (!fnode.restoreDeleted(data.resource)) {
                 serving.ioError('failed');
                 return;

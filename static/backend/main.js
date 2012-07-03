@@ -69,6 +69,8 @@ function inputBox() {
 
 function msgBox(message) { alert(message) }
 
+function confirmBox(message) { return confirm(message) }
+
 function setupEventHandlers() {
     $('body').keydown(function(ev){
         if (!(ev.target instanceof HTMLBodyElement)) return; // focused elsewhere, but the event propagated till here
