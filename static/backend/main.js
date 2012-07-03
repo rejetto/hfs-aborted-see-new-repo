@@ -7,11 +7,13 @@ function loadJS(libs) {
 
 loadJS('extending|misc');
 
-var socket = io.connect(window.location.origin);
+var socket;
 
 var virtualFocus = 'vfs'; 
 
 $(function(){ // dom ready
+    socket = io.connect(window.location.origin)
+    
     $(tpl.item).addClass('item').appendTo($('<ul>').appendTo('#vfs')); // create the root element
 
     // hide expansion button

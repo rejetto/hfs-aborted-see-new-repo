@@ -5,7 +5,7 @@
     "file server",
     "http server"
   ],
-  "version": "0.1.6",
+  "version": "0.1.7",
   "homepage": "http://www.rejetto.com/hfs",
   "author": "Massimo Melina <a@rejetto.com> (http://rejetto.com)",
   "repository": {

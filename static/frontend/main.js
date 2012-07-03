@@ -151,7 +151,7 @@ function redrawItems() {
     if (cf > '/') {
         addItem({
             label: '&uarr;&uarr;',
-            url: dirname(cf).includingTrailing('/'),
+            url: dirname(cf).includeTrailing('/'),
             type: 'folder',
             icon: 'folder'
         });
