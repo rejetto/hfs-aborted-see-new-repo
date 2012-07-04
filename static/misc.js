@@ -194,6 +194,9 @@ function basename(path) {
 
 function dirname(path) { return path.substr(0, path.length-basename(path)) }
 
+/** for now it's only a place-holder. We'll be able to transform data in a way to optimize socket.io communications */  
+function ioData(x) { return x }
+
 /* CURRENTLY UNUSED
 
 // reports how many pixels the element is exceeding the viewport, on the right side

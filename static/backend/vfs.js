@@ -7,7 +7,7 @@ function bindItem() {
     if (!it) return;
     inputBox('Enter path', function(s){
         if (!s) return;    
-        socket.emit('vfs.set', { uri:getURI(it), resource:s }, function(result){
+        socket.emit('vfs.set', ioData({ uri:getURI(it), resource:s }), function(result){
             result.ok   
                 ? reloadVFS(it)
                 : msgBox(result.error);
@@ -21,7 +21,7 @@ function renameItem() {
     inputBox('Enter new name', it.name, function(s){
         s = $.trim(s);
         if (!s || s == it.name) return; // no change
-        socket.emit('vfs.set', { uri:getURI(it), name:s }, function(result){
+        socket.emit('vfs.set', ioData({ uri:getURI(it), name:s }), function(result){
             if (!result.ok) {
                 msgBox(result.error);
                 return;
@@ -53,7 +53,7 @@ function deleteItem() {
     li.attr('deleting',1).fadeTo(100, 0.5); // mark it visually and at DOM level  
     vfsSelectNearby(li); // renew selection
     // server, please do it
-    socket.emit('vfs.delete', { uri:getURI(it) }, function(result){
+    socket.emit('vfs.delete', ioData({ uri:getURI(it) }), function(result){
         if (!log('vfs.delete',result).ok) { // something went wrong
             // ugh, forget it.... (unmark)
             it.deleting = false;
@@ -83,7 +83,7 @@ function restoreItem(it) {
     var li = $(it.element); 
     var folder = li.closest('li.item');
     vfsSelectNearby(li);
-    socket.emit('vfs.restore', { uri:getURI(folder), resource:it.name }, function(result){
+    socket.emit('vfs.restore', ioData({ uri:getURI(folder), resource:it.name }), function(result){
         if (!result.ok) return;
         // do the job locally: remove the element from the array
         removeFromDeletedItems(asItem(folder), it.name);
@@ -98,7 +98,7 @@ function restoreItem(it) {
 function restoreAllItems(li) {
     assert(li, 'li');
     li = li.closest('li.item');
-    socket.emit('vfs.restore', { uri:getURI(li), resource:'*' }, function(result){
+    socket.emit('vfs.restore', ioData({ uri:getURI(li), resource:'*' }), function(result){
         if (!result.ok) return;
         reloadVfs(li);
     });    
@@ -108,7 +108,7 @@ function addItem() {
     var it = getFirstSelectedFolder() || getRootItem();
     inputBox('Enter name or path', function(s){
         if (!s) return;    
-        socket.emit('vfs.add', { uri:getURI(it), resource:s }, function(result){
+        socket.emit('vfs.add', ioData({ uri:getURI(it), resource:s }), function(result){
             if (!log('vfs.add',result).ok) {
                 msgBox(result.error);
                 return;
@@ -442,10 +442,11 @@ function enableButton(name, condition) {
 
 function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
-    socket.emit('vfs.get', { uri:item ? getURI(item) : '/', depth:1 }, function(data){
+    socket.emit('vfs.get', ioData({ uri:item ? getURI(item) : '/', depth:1 }), function(data){
         if (!log('vfs.get',data)) return;
         bindItemToDOM(data, e);
         setExpanded(e);
+        //*** add deleted items                
         if (data.children.length) {
             data.children.forEach(function(it){
                 addItemUnder(e, it);            

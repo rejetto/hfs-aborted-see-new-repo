@@ -90,6 +90,7 @@ serving.setupSocketIO(io);
 io.sockets.on('connection', function(socket){
     
     socket.on('vfs.get', function onGet(data, cb) {
+        serving.ioData(data);
         if (serving.ioError(!data ? data
             : typeof data.uri != 'string' ? 'uri'
             : null, cb)) return;
@@ -101,6 +102,7 @@ io.sockets.on('connection', function(socket){
 
     // set properties of a vfs item
     socket.on('vfs.set', function onSet(data, cb){
+        serving.ioData(data);
         // assertions
         if (serving.ioError(!data ? 'data'
             : typeof data.uri != 'string' ? 'uri'
@@ -126,6 +128,7 @@ io.sockets.on('connection', function(socket){
     
     // add an item to the vfs
     socket.on('vfs.add', function onAdd(data, cb){
+        serving.ioData(data);
         // assertions
         if (serving.ioError(!data ? 'data'
             : typeof data.uri !== 'string' ? 'uri'
@@ -151,6 +154,7 @@ io.sockets.on('connection', function(socket){
     
     // delete item, make it non-existent in the VFS
     socket.on('vfs.delete', function onRemove(data, cb){
+        serving.ioData(data);
         // assertions
         if (serving.ioError(!data ? 'data'
             : typeof data.uri !== 'string' ? 'uri'
@@ -175,6 +179,7 @@ io.sockets.on('connection', function(socket){
 
     // restore a temp item that was deleted
     socket.on('vfs.restore', function onRestore(data, cb){
+        serving.ioData(data);
         // assertions
         if (serving.ioError(!data ? 'data'
             : typeof data.uri !== 'string' ? 'uri'
@@ -204,6 +209,7 @@ io.sockets.on('connection', function(socket){
     });
     
     socket.on('info.get', function onInfo(data, cb){
+        serving.ioData(data);
         serving.ioOk(cb, {caseSensitiveFileNames:misc.caseSensitiveFileNames});
     });
     
@@ -212,7 +218,7 @@ io.sockets.on('connection', function(socket){
 notifyVfsChange = function(socket, uri) {
     dbg('vfs.changed');
     [socket.broadcast, require('./file-server').io.sockets].forEach(function(o){
-        o.emit('vfs.changed', {uri:uri});
+        o.emit('vfs.changed', serving.ioData({uri:uri}));
     });
 }; // notifyVfsChange
 

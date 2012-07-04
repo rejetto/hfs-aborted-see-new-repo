@@ -24,12 +24,13 @@ $(function(){ // dom ready
     vfsUpdateButtons();
     setupEventHandlers();
     socket.on('connect', function(){ // socket ready
-        socket.emit('info.get', {}, function(data){
+        socket.emit('info.get', ioData({}), function(data){
             serverInfo = data||{};
             reloadVFS();
         });
     });
     socket.on('vfs.changed', function(data){
+        ioData(data);
         if (!log('vfs.changed',data)) return; // something wrong
         var folder = data.uri.substr(0, data.uri.lastIndexOf('/')+1);
         var it = getItemFromURI(folder);
