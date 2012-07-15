@@ -22,6 +22,7 @@ jQuery.fn.scrollToMe = function(options){
     if (!this.size()) return;
     var top = this.offset().top;
     var bottom = top+this.outerHeight();
+    var scrollY = jQuery(document).scrollTop();
     var go;
     if (top < scrollY) {
         go = top; // on top?

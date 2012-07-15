@@ -11,15 +11,22 @@ var socket;
 
 var virtualFocus = 'vfs'; 
 
+function addStyleRule(selector, declaration) {
+    var style = document.styleSheets[0];
+    var rules = style.rules || style.cssRules;
+    // append
+    style.addRule ? style.addRule(selector, declaration)   
+        : style.insertRule(selector+'{ '+declaration+' }', rules.length);    
+    return rules[rules.length-1].style;
+} // addStyleRule 
+
 $(function(){ // dom ready
     socket = io.connect(window.location.origin)
     
     $(tpl.item).addClass('item').appendTo($('<ul>').appendTo('#vfs')); // create the root element
 
     // hide expansion button
-    var style = document.styleSheets[0];
-    style.addRule('#vfs .expansion-button','opacity:0');
-    expansionCss = style.rules[style.rules.length-1].style;
+    expansionCss = addStyleRule('#vfs .expansion-button','opacity:0');
     
     vfsUpdateButtons();
     setupEventHandlers();
