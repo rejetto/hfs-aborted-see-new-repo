@@ -37,9 +37,11 @@ jQuery.fn.scrollToMe = function(options){
 }; // scrollToMe
 
 var log = function() {
-    var last;
-    for (var k in arguments)
-        console.log(last = arguments[k]);
+    if (typeof window.console != 'undefined' && console.log) {
+        var last;
+        for (var k in arguments)
+            console.log(last = arguments[k]);
+    }
     return last;
 }; // log
 

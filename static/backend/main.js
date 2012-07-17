@@ -13,11 +13,8 @@ var virtualFocus = 'vfs';
 
 function addStyleRule(selector, declaration) {
     var style = document.styleSheets[0];
-    var rules = style.rules || style.cssRules;
-    // append
-    style.addRule ? style.addRule(selector, declaration)   
-        : style.insertRule(selector+'{ '+declaration+' }', rules.length);    
-    return rules[rules.length-1].style;
+    style.insertRule(selector+' { '+declaration+' }', 0); // prepend    
+    return style.cssRules[0].style;
 } // addStyleRule 
 
 $(function(){ // dom ready
