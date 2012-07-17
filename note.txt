@@ -33,6 +33,7 @@ system integration
             - search
             - select & action (archive, delete, rename...)
 - the web apps must perfectly working offline, don't rely on online resources (or do it just as an option or gracefully degrade)
+- most non-core features should be plugins. We should have a repository and easy installations. 
            
 === GUI
 libraries to evaluate
@@ -102,3 +103,29 @@ http://superdit.com/2011/06/01/extjs-simple-file-browser/
     - icon
     - ? message when not allowed
 - permissions and options have default values that are enforced when not assigned, to not clutter the stored data structure
+
+
+=== MORE IDEAS
+- adding only "?" at the end of an URL of a file, will turn on a specific feature on that download
+    like asking the browser for the save dialog
+    could this be done with a plugin? 
+- only-once downloads
+    plugin?
+
+=== PLUGIN SYSTEM
+- an important part in designing a good plugin system is to have clear in mind what their needs are
+    - it could be good to collect plugins idea, then list what their needs are. So it's easier to sequentially
+      check that every requirement is met     
+- technically, how to make it?
+    - HFS could be the event emitter, and plugins the subscribers
+        - this won't permit plugins to be blocking. Like a plugin who takes an output and wants to manipulate
+          it before outputting.
+            - a real example?
+- enable/disable plugins without having to restart the server 
+- possible plugins
+    - add flags to displaied connections
+        - this is mainly client-side
+            NEED: integrate with the template
+        - it needs access to a webservice, so it needs a server part that will proxy the webservice
+            NEED: respond to its own socket.io messages        
+           

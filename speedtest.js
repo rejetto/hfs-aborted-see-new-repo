@@ -9,7 +9,7 @@ var http = require('http');
 var fs = require('fs');
 
 var srv = http.createServer(function(httpReq,httpRes){
-    console.log('serving');
+    //console.log('serving');  // for heavy loads this can affect performances
 
     httpRes.writeHead(200);
     fs.createReadStream(myGigFile).pipe(httpRes);

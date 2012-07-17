@@ -5,7 +5,7 @@ a img { border:0; } /* conform IE */
 #vfs li { border:2px solid transparent; padding:0.1em 0.2em }
 #vfs li.selected { background:#ddf; border-color:#99f; }
 #vfs li.hovered { background:#eee; }
-#vfs .expansion-button { margin-right:0.5em; cursor:pointer; }
+#vfs .expansion-button { margin-right:0.5em; cursor:pointer; } /* monospace is useless in this case to get a fixed width */
 #vfs .expansion-button.hovered { background-color:#ddd; }
 #vfs li.collapsed>ul { display:none; } 
 #vfs .no-children { color:#888; }
