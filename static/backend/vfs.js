@@ -63,7 +63,7 @@ function deleteItem() {
             return;
         }
         // if this number has changed, then we need to do a little extra work: the item became a deleted item.
-        if (oldNumber !== result.folderDeletedCount) {
+        if (log('old',oldNumber) !== log('now',result.folderDeletedCount)) {
             updateDeletedItems(parent, {adding:result.dynamicItem});
         }
         // GUI refresh
@@ -444,6 +444,7 @@ function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
     socket.emit('vfs.get', ioData({ uri:item ? getURI(item) : '/', depth:1 }), function(data){
         if (!log('vfs.get',data)) return;
+        e.find('ul').empty();
         bindItemToDOM(data, e);
         setExpanded(e);
         //*** add deleted items                
@@ -517,7 +518,7 @@ function bindItemToDOM(item, element) {
         icon = nameToType(item.name) || icon;
     } 
     li.find('.icon:first').html("<img src='"+getIconURI(icon)+"' />");
-    if (isFolder(item)) {
+    if (isFolder(item) && isExpanded(item)) {
         updateDeletedItems(item);
     }
     return element;
