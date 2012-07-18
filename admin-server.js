@@ -91,6 +91,7 @@ io.sockets.on('connection', function(socket){
     
     socket.on('vfs.get', function onGet(data, cb) {
         serving.ioData(data);
+        dbg('vfs.get', data);
         if (serving.ioError(!data ? data
             : typeof data.uri != 'string' ? 'uri'
             : null, cb)) return;
@@ -103,6 +104,7 @@ io.sockets.on('connection', function(socket){
     // set properties of a vfs item
     socket.on('vfs.set', function onSet(data, cb){
         serving.ioData(data);
+        dbg('vfs.set', data);
         // assertions
         if (serving.ioError(!data ? 'data'
             : typeof data.uri != 'string' ? 'uri'
@@ -117,18 +119,23 @@ io.sockets.on('connection', function(socket){
                 if (serving.ioError(typeof data.name != 'string' ? 'name' : null, cb)) return;
                 fnode.name = data.name;
                 serving.ioOk(cb);
+                notifyVfsChange(socket, fnode.getURI().excludeTrailing('/'));
+                return;
             }
-            else if (data.resource) {
+            if (data.resource) {
                 if (serving.ioError(typeof data.resource != 'string' ? 'resource' : null, cb)) return;
-                fnode.set(data.resource, serving.ioOk.bind(this,cb));
+                fnode.set(data.resource, function(){
+                    serving.ioOk(cb);
+                    notifyVfsChange(socket, fnode.getURI().excludeTrailing('/'));
+                });
             }
-            notifyVfsChange(socket, fnode.getURI().excludeTrailing('/'));
         });
     });
     
     // add an item to the vfs
     socket.on('vfs.add', function onAdd(data, cb){
         serving.ioData(data);
+        dbg('vfs.add', data);
         // assertions
         if (serving.ioError(!data ? 'data'
             : typeof data.uri !== 'string' ? 'uri'
@@ -155,6 +162,7 @@ io.sockets.on('connection', function(socket){
     // delete item, make it non-existent in the VFS
     socket.on('vfs.delete', function onRemove(data, cb){
         serving.ioData(data);
+        dbg('vfs.delete', data);
         // assertions
         if (serving.ioError(!data ? 'data'
             : typeof data.uri !== 'string' ? 'uri'
@@ -165,14 +173,16 @@ io.sockets.on('connection', function(socket){
                 serving.ioError('uri not found', cb)
                 return;
             }
+            //** use step?
             fnode.getFolder(function(folder){
-                fnode.delete();
-                // if we just deleted a dynamic item, the GUI may need an extra refresh
-                serving.ioOk(cb, {
-                    dynamicItem: fnode.isTemp() && path.basename(fnode.resource)+(fnode.isFolder() ? '/' : ''), // trailing slash to denote folders
-                    folderDeletedCount: folder.deletedItems ? folder.deletedItems.length : 0
+                fnode.delete(function(){
+                    // if we just deleted a dynamic item, the GUI may need an extra refresh
+                    serving.ioOk(cb, {
+                        dynamicItem: fnode.isTemp() && path.basename(fnode.resource)+(fnode.isFolder() ? '/' : ''), // trailing slash to denote folders
+                        folderDeletedCount: folder.deletedItems ? folder.deletedItems.length : 0
+                    });
+                    notifyVfsChange(socket, folder.getURI()); 
                 });
-                notifyVfsChange(socket, folder.getURI()); 
             });
         });
     });
@@ -180,6 +190,7 @@ io.sockets.on('connection', function(socket){
     // restore a temp item that was deleted
     socket.on('vfs.restore', function onRestore(data, cb){
         serving.ioData(data);
+        dbg('vfs.restore', data);
         // assertions
         if (serving.ioError(!data ? 'data'
             : typeof data.uri !== 'string' ? 'uri'
@@ -210,6 +221,7 @@ io.sockets.on('connection', function(socket){
     
     socket.on('info.get', function onInfo(data, cb){
         serving.ioData(data);
+        dbg('info.get', data);
         serving.ioOk(cb, {caseSensitiveFileNames:misc.caseSensitiveFileNames});
     });
     
