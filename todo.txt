@@ -5,6 +5,9 @@ improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
 
 === NEXT
+use Step()
+    how to stop the callbacks chain?
+    how to extend visibility of data that's local to a cb to next cb?  
 backend: vfs: specific icon for the "deleted" folder
 backend: vfs: overlay icon to signalise temp nodes (based on nodeKind) 
 

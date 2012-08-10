@@ -481,7 +481,8 @@ function setExpanded(item, state) {
     if (isExpanded(li) == state) return;
     li.addClass(state ? 'expanded' : 'collapsed')
         .removeClass(!state ? 'expanded' : 'collapsed');
-    // deal with the container of children
+    updateDeletedItems(li);
+    // deal with the container of children    
     var ul = li.find('ul:first');
     if (state) { // expanded
         if (!ul.size())
@@ -529,7 +530,8 @@ function updateDeletedItems(it, options) {
     options = options||{};
     var folder = asLI(it);
     var ul = folder.children('ul');
-    it = asItem(it); 
+    it = asItem(it);
+    if (!it) return; // this folder has not bound an item, it must be a special folder 
 
     if (options.adding) {
         it.deletedItems.push(options.adding);

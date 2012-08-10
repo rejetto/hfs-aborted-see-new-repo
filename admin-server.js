@@ -22,7 +22,7 @@ var srv = http.createServer(function(httpReq,httpRes){
 
     if (serving.serveStatic(httpReq, httpRes)) return; // access to the special 'static' folder
     if (httpReq.uri == '/') {
-        serving.serveFile('static/backend.html', httpRes);
+        serving.serveFile('static/backend/index.html', httpRes);
         return;
     }
     serve404(httpRes); // we serve nothing else
@@ -173,16 +173,13 @@ io.sockets.on('connection', function(socket){
                 serving.ioError('uri not found', cb)
                 return;
             }
-            //** use step?
-            fnode.getFolder(function(folder){
-                fnode.delete(function(){
-                    // if we just deleted a dynamic item, the GUI may need an extra refresh
-                    serving.ioOk(cb, {
-                        dynamicItem: fnode.isTemp() && path.basename(fnode.resource)+(fnode.isFolder() ? '/' : ''), // trailing slash to denote folders
-                        folderDeletedCount: folder.deletedItems ? folder.deletedItems.length : 0
-                    });
-                    notifyVfsChange(socket, folder.getURI()); 
+            fnode.delete(function(folder){
+                // if we just deleted a dynamic item, the GUI may need an extra refresh
+                serving.ioOk(cb, {
+                    dynamicItem: fnode.isTemp() && path.basename(fnode.resource)+(fnode.isFolder() ? '/' : ''), // trailing slash to denote folders
+                    folderDeletedCount: folder.deletedItems ? folder.deletedItems.length : 0
                 });
+                notifyVfsChange(socket, folder.getURI()); 
             });
         });
     });

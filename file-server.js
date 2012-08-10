@@ -95,6 +95,6 @@ function serveFromVFS(httpReq, httpRes) {
             return httpRes.end();
         }
         
-        serving.serveFile('static/frontend.html', httpRes)
+        serving.serveFile('static/frontend/index.html', httpRes)
     });
 } // serveFromVFS
