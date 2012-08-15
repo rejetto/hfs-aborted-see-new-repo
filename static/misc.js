@@ -135,7 +135,9 @@ round = function(v, decimals) {
 
 function cmp(a,b) { return a>b ? 1 : a<b ? -1 : 0 }
 
-function getIconURI(icon) { return "/~/icons/files/"+icon+".png"; }
+function getPicURI(file) { return "/~/pics/"+file+".png"; }
+
+function getIconURI(icon) { return "/~/pics/files/"+icon+".png"; }
 
 function animate(object, property, endValue, options) {
     options = options||{};
