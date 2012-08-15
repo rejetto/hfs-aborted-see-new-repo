@@ -92,9 +92,9 @@ io.sockets.on('connection', function(socket){
     socket.on('vfs.get', function onGet(data, cb) {
         serving.ioData(data);
         dbg('vfs.get', data);
-        if (serving.ioError(!data ? data
+        if (serving.ioError(cb, !data ? data
             : typeof data.uri != 'string' ? 'uri'
-            : null, cb)) return;
+            : null)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
             nodeToObject(fnode, data.depth, cb);                
@@ -106,24 +106,24 @@ io.sockets.on('connection', function(socket){
         serving.ioData(data);
         dbg('vfs.set', data);
         // assertions
-        if (serving.ioError(!data ? 'data'
+        if (serving.ioError(cb, !data ? 'data'
             : typeof data.uri != 'string' ? 'uri'
-            : null, cb)) return;
+            : null)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
             if (!fnode) {
-                serving.ioError('not found');
+                serving.ioError(cb, 'not found');
                 return;
             }
             if (data.name) {
-                if (serving.ioError(typeof data.name != 'string' ? 'name' : null, cb)) return;
+                if (serving.ioError(cb, typeof data.name != 'string' ? 'name' : null)) return;
                 fnode.name = data.name;
                 serving.ioOk(cb);
                 notifyVfsChange(socket, fnode.getURI().excludeTrailing('/'));
                 return;
             }
             if (data.resource) {
-                if (serving.ioError(typeof data.resource != 'string' ? 'resource' : null, cb)) return;
+                if (serving.ioError(cb, typeof data.resource != 'string' ? 'resource' : null)) return;
                 fnode.set(data.resource, function(){
                     serving.ioOk(cb);
                     notifyVfsChange(socket, fnode.getURI().excludeTrailing('/'));
@@ -137,19 +137,19 @@ io.sockets.on('connection', function(socket){
         serving.ioData(data);
         dbg('vfs.add', data);
         // assertions
-        if (serving.ioError(!data ? 'data'
+        if (serving.ioError(cb, !data ? 'data'
             : typeof data.uri !== 'string' ? 'uri'
             : typeof data.resource !== 'string' ? 'resource'
-            : null, cb)) return;
+            : null)) return;
 
         vfs.fromUrl(data.uri, function(fnode) {
             if (!fnode) {
-                serving.ioError('uri not found', cb);
+                serving.ioError(cb, 'uri not found');
                 return;
             }
             var already = fnode.getChildByName(path.basename(data.resource)); // check if it already exists
             if (already) {
-                serving.ioError('already exists', cb);
+                serving.ioError(cb, 'already exists');
                 return;
             }            
             fnode.add(data.resource, function(newNode){
@@ -164,19 +164,19 @@ io.sockets.on('connection', function(socket){
         serving.ioData(data);
         dbg('vfs.delete', data);
         // assertions
-        if (serving.ioError(!data ? 'data'
+        if (serving.ioError(cb, !data ? 'data'
             : typeof data.uri !== 'string' ? 'uri'
-            : null, cb)) return;
+            : null)) return;
 
         vfs.fromUrl(data.uri, function(fnode){
             if (!fnode) {
-                serving.ioError('uri not found', cb)
+                serving.ioError(cb, 'uri not found')
                 return;
             }
             fnode.delete(function(folder){
                 // if we just deleted a dynamic item, the GUI may need an extra refresh
                 serving.ioOk(cb, {
-                    dynamicItem: fnode.isTemp() && path.basename(fnode.resource)+(fnode.isFolder() ? '/' : ''), // trailing slash to denote folders
+                    dynamicItem: fnode.isTemp() && path.basename(fnode.resource)+(fnode.isFolder() ? '/' : ''), // a trailing slash denotes folders
                     folderDeletedCount: folder.deletedItems ? folder.deletedItems.length : 0
                 });
                 notifyVfsChange(socket, folder.getURI()); 
@@ -189,14 +189,14 @@ io.sockets.on('connection', function(socket){
         serving.ioData(data);
         dbg('vfs.restore', data);
         // assertions
-        if (serving.ioError(!data ? 'data'
+        if (serving.ioError(cb, !data ? 'data'
             : typeof data.uri !== 'string' ? 'uri'
             : typeof data.resource !== 'string' ? 'resource'
-            : null, cb)) return;
+            : null)) return;
 
         vfs.fromUrl(data.uri, function(fnode){
             if (!fnode) {
-                serving.ioError('uri not found', cb)
+                serving.ioError(cb, 'uri not found')
                 return;
             }
             if (data.resource === '*') { // special case, restore all
@@ -206,7 +206,7 @@ io.sockets.on('connection', function(socket){
                 return;
             }
             if (!fnode.restoreDeleted(data.resource)) {
-                serving.ioError('failed');
+                serving.ioError(cb, 'failed');
                 return;
             }
             fnode.createFileNodeFromRelativeUri(data.resource, function(child){
