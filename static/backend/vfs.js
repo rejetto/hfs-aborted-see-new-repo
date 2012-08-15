@@ -69,7 +69,7 @@ function deleteItem() {
         // GUI refresh
         li.fadeOut(100, function(){
             li.remove();
-            if (!getFirstChild(parent).size()) { 
+            if (!getFirstChild(parent).length) { 
                 parent.find('ul:first').append(tpl.noChildren); // deleted last item of a folder
             }
         })        
@@ -126,10 +126,10 @@ function addItem() {
 function vfsSelectNearby(li) {
     var selector = 'li:not([deleting])';
     var go = li.next(selector);
-    if (!go.size()) {
+    if (!go.length) {
         go = li.prev(selector);
     }
-    if (!go.size()) {            
+    if (!go.length) {            
         go = getParent(li);
     }
     vfsSelect(go);
@@ -207,24 +207,24 @@ function eventHandler_vfs_keydown(ev) {
     switch (ev.keyCode) {
         case 38: // up
             go = sel.prev();
-            if (go.size()) break;
+            if (go.length) break;
             go = getParent(sel);
             break;                
         case 40: // down
-            if (!sel.size()) { // initialize with root
+            if (!sel.length) { // initialize with root
                 go = getRoot(); 
                 break;
             }
             if (isExpanded(sel)) { // try first child 
                 go = getFirstChild(sel);
-                if (go.size()) break;
+                if (go.length) break;
             }
             go = sel.next() // try the sibling
-            if (go.size()) break;
+            if (go.length) break;
             // try the parent's sibling
             var v = sel;
-            while ((v = getParent(v)).size()) {
-                if (v.next().size()) {
+            while ((v = getParent(v)).length) {
+                if (v.next().length) {
                     go = v.next();
                     break;
                 } 
@@ -242,18 +242,18 @@ function eventHandler_vfs_keydown(ev) {
                 : expandAndLoad(sel);
             break;
         case 36: // home
-            if (sel.size() && !isRoot(sel)) {
+            if (sel.length && !isRoot(sel)) {
                 go = getFirstChild(getParent(sel));
-                if (go.size() && !go.is(sel)) break;
+                if (go.length && !go.is(sel)) break;
             }
             go = getRoot();
             break;
         case 35: // end
             go = getLastChild(getParent(sel));
-            if (go.size() && !go.is(sel)) break;
+            if (go.length && !go.is(sel)) break;
             go = getRoot();
             // go down till it's possible
-            while ((v = getLastChild(go)).size()) {
+            while ((v = getLastChild(go)).length) {
                 go = v;
             }
             break;
@@ -267,7 +267,7 @@ function eventHandler_vfs_keydown(ev) {
             //log(ev.keyCode); 
             return; // unsupported key, don't handle                        
     }
-    if (go && go.size()) {
+    if (go && go.length) {
         showExpansionButtons();
         vfsSelect(go);
     }
@@ -326,7 +326,7 @@ function getChildren(x) {
 function getFirstChild(parent, pattern /** optional */) {
     var inputType = getType(parent); 
     parent = asLI(parent);
-    assert(parent.size(), 'parent');
+    assert(parent.length, 'parent');
     assert(!pattern || typeof pattern == 'object', 'pattern');
     var res = false;
     parent.find('ul:first>li').each(function(idx,el){    
@@ -404,7 +404,7 @@ function isRoot(it) { return getURI(it) == '/' }
 
 function isExpanded(x) { return asLI(x).hasClass('expanded') }
 
-function isDeleted(x) { return asLI(x).closest('.deleted-items').size() }
+function isDeleted(x) { return asLI(x).closest('.deleted-items').length }
 
 function getURI(item) {
     item = asItem(item);
@@ -430,7 +430,7 @@ function getItemFromURI(uri, from) {
 function vfsUpdateButtons() {
     var li = getFirstSelected();
     var it = asItem(li);
-    enableButton('addItem', !li.size() || it && !it.deleted); 
+    enableButton('addItem', !li.length || it && !it.deleted); 
     enableButton('bindItem', it && it.itemKind === 'virtual folder');
     enableButton('renameItem', it && !isRoot(it) && !isDeleted(it)); 
     enableButton('deleteItem', it && !isRoot(it)); 
@@ -444,17 +444,18 @@ function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
     socket.emit('vfs.get', ioData({ uri:item ? getURI(item) : '/', depth:1 }), function(data){
         if (!log('vfs.get',data)) return;
-        e.find('ul').empty();
+        var ul = e.find('ul').empty();  // remove possible children
         bindItemToDOM(data, e);
         setExpanded(e);
-        //*** add deleted items                
+        updateDeletedItems(e);
         if (data.children.length) {
             data.children.forEach(function(it){
                 addItemUnder(e, it);            
             });
         }
         else {
-            e.children('ul').empty().append(tpl.noChildren); // remove possible children
+            if (!ul.length)
+                ul.append(tpl.noChildren);
         }
         if (cb) cb();
     });    
@@ -469,7 +470,7 @@ function asItem(x) { return toType('item', x) }
 function setExpanded(item, state) {
     if (state === undefined) state = true;
     var li = asLI(item);
-    if (!li.size()) return;
+    if (!li.length) return;
     item = asItem(item);
     var button = li.find('.expansion-button:first');
     button.text(state ? '▲' : '▷');
@@ -485,7 +486,7 @@ function setExpanded(item, state) {
     // deal with the container of children    
     var ul = li.find('ul:first');
     if (state) { // expanded
-        if (!ul.size())
+        if (!ul.length)
             ul = $('<ul>').appendTo(li);
     } 
     else {
@@ -531,7 +532,7 @@ function updateDeletedItems(it, options) {
     var folder = asLI(it);
     var ul = folder.children('ul');
     it = asItem(it);
-    if (!it) return; // this folder has not bound an item, it must be a special folder 
+    if (!it) return; // this folder has not bound an item, it must be a special folder
 
     if (options.adding) {
         it.deletedItems.push(options.adding);
@@ -541,29 +542,28 @@ function updateDeletedItems(it, options) {
     }
 
     if (!it.deletedItems || !it.deletedItems.length) { // no items?
-        // remove the pseudo-folder
-        if (!ul.size()) return;
+        if (!ul.length) return;
         var li = ul.children('li.deleted-items');
-        if (!li.size()) return;
+        if (!li.length) return;
         if (getFirstSelected().is(li)) { 
             vfsSelectNearby(li);
         }
         li.remove();
         // if there is no more children in the containing folder, remove the UL as well
-        if (!ul.children().size()) {
+        if (!ul.children().length) {
             ul.remove();
         }
         return;
     }
     // ensure there's a UL for the containing folder
-    if (!ul.size()) {
+    if (!ul.length) {
         ul = $('<ul>').appendTo(folder);
     }
     // ensure there's a LI of the pseudo-folder 
     var li = ul.children('li.deleted-items');
-    if (!li.size()) {  
+    if (!li.length) {  
         li = $(tpl.item).addClass('deleted-items').prependTo(ul); 
-        li.find('.icon:first').html("<img src='"+getIconURI('folder')+"' />");
+        li.find('.icon:first').html("<img src='{0}' style='position:absolute;'><img src='{1}'>".format(getPicURI("cross"), getIconURI('folder')));
         setExpanded(li, false);
     }
     // update the label                
@@ -596,7 +596,7 @@ function addItemUnder(under, item, position) {
 
     // the UL element is the place for children, have one or create it  
     var x = under.children('ul'); 
-    under = x.size() ? x : $('<ul>').appendTo(under);
+    under = x.length ? x : $('<ul>').appendTo(under);
     
      
     under.children('span.no-children').remove(); // remove any place holder
@@ -605,21 +605,21 @@ function addItemUnder(under, item, position) {
     if (position.isIn('top','sorted')) { // both require to put the item after special items (so skip them)
         beforeThis = getFirstChild(under); // go down one level
         // skip special items
-        while (beforeThis.size() && !beforeThis.hasClass('item')) { 
+        while (beforeThis.length && !beforeThis.hasClass('item')) { 
             beforeThis = beforeThis.next();
         }
     }
     if (position === 'sorted') {
         // skip elements until we find one that has a "higher" name (case-insensitively)
         var name = item.name.low(); 
-        while (beforeThis.size()
+        while (beforeThis.length
             && beforeThis.hasClass('item')
             && beforeThis.find('.label').text().low() < name) {
             beforeThis = beforeThis.next();
         }
     }
     // add the item at the calculated position, or at the end
-    (beforeThis && beforeThis.size())
+    (beforeThis && beforeThis.length)
         ? el.insertBefore(beforeThis)
         : el.appendTo(under);
     // do the final setup
