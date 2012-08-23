@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/rejetto/hfs.png)](http://travis-ci.org/rejetto/hfs)
 hfs
 ===
 
