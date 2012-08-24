@@ -1,3 +1,28 @@
+tpl.item = "<li>"
+    +"<span class='expansion-button'></span> <span class='icon'></span> <span class='label'></span>"
+    +"</li>";
+
+tpl.noChildren = "<span class='no-children'>nothing</span>";
+
+$(function(){
+    $(tpl.item).addClass('item').appendTo($('<ul>').appendTo('#vfs')); // create the root element
+
+    // hide expansion button
+    expansionCss = addStyleRule('#vfs .expansion-button','opacity:0');
+
+    vfsUpdateButtons();
+
+    socket.on('vfs.changed', function(data){
+        ioData(data);
+        if (!log('vfs.changed',data)) return; // something wrong
+        var folder = data.uri.substr(0, data.uri.lastIndexOf('/')+1);
+        var it = getItemFromURI(folder);
+        if (!it) return; // not in the visible tree: ignore
+        if (!isExpanded(it)) return; // not expanded, we don't see its content, no need to reload
+        reloadVFS(it);
+    });
+});
+
 function sameFileName(a,b) {
     return serverInfo.caseSensitiveFileNames ? a === b : a.same(b);
 } // sameFileName

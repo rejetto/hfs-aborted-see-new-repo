@@ -20,12 +20,6 @@ function addStyleRule(selector, declaration) {
 $(function(){ // dom ready
     socket = io.connect(window.location.origin)
     
-    $(tpl.item).addClass('item').appendTo($('<ul>').appendTo('#vfs')); // create the root element
-
-    // hide expansion button
-    expansionCss = addStyleRule('#vfs .expansion-button','opacity:0');
-    
-    vfsUpdateButtons();
     setupEventHandlers();
     socket.on('connect', function(){ // socket ready
         socket.emit('info.get', ioData({}), function(data){
@@ -33,24 +27,9 @@ $(function(){ // dom ready
             reloadVFS();
         });
     });
-    socket.on('vfs.changed', function(data){
-        ioData(data);
-        if (!log('vfs.changed',data)) return; // something wrong
-        var folder = data.uri.substr(0, data.uri.lastIndexOf('/')+1);
-        var it = getItemFromURI(folder);
-        if (!it) return; // not in the visible tree: ignore
-        if (!isExpanded(it)) return; // not expanded, we don't see its content, no need to reload
-        reloadVFS(it);
-    });
 });
 
 var tpl = {
-    item: "<li>"
-        +"<span class='expansion-button'></span>"
-        +"<span class='icon'></span>"
-        +"<span class='label'></span>"
-    +"</li>",
-    noChildren: "<span class='no-children'>nothing</span>",
 };
 
 /* display a dialog for input.
