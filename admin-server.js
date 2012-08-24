@@ -7,6 +7,7 @@ var socket_io = require('socket.io');
 var serving = require('./lib/serving');
 
 exports.start = function(listenOn) {
+    srv.listenOn = listenOn;
     srv.listen(listenOn.port, listenOn.ip, function(){
         dbg('listening on port '+listenOn.port);
     });
@@ -31,7 +32,7 @@ var srv = http.createServer(function(httpReq,httpRes){
 srv.on('error', function(err){
     switch (err.code) {
         case 'EADDRINUSE':
-            return dbg('port '+listenOn.port+' busy');
+            return dbg('port '+srv.listenOn.port+' busy');
     }
 });
 
