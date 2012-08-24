@@ -219,7 +219,7 @@ function eventHandler_vfs_keydown(ev) {
                 go = getFirstChild(sel);
                 if (go.length) break;
             }
-            go = sel.next() // try the sibling
+            go = sel.next(); // try the sibling
             if (go.length) break;
             // try the parent's sibling
             var v = sel;
@@ -453,9 +453,8 @@ function reloadVFS(item, cb) {
                 addItemUnder(e, it);            
             });
         }
-        else {
-            if (!ul.length)
-                ul.append(tpl.noChildren);
+        else if (!ul.children().length) {
+            ul.append(tpl.noChildren);
         }
         if (cb) cb();
     });    
