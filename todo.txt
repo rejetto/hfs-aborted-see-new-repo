@@ -1,15 +1,13 @@
 === DOING
-it's like there's a memory leak. See section below for tests already made. 
-debugging console via telnet (still working very bad) 
+debugging console via telnet (still working very bad)
 improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
 
 === NEXT
-backend: vfs: specific icon for the "deleted" folder
 backend: vfs: overlay icon to signalise temp nodes (based on nodeKind) 
 
 === AFTER
-?comply with standard callback(err,data)
+? comply with standard callback(err,data)
 make the .expansion-button a fixed size
 ? folder multi-bind
     ? if 2 binds have 2 subfolders with same name, should merge them too? 
@@ -32,16 +30,3 @@ now tornado supports python3. Reconsider.
     - more libraries (sure? libs need to be async, don't they? so, they may even be fewer)
     CONS
     - have to port what's already written
-
-=== MEMORY LEAK
-having a refresh at 1Hz
-    both frontend and backend
-                          86mb@30' 103mb@45' 111mb@60' 142mb@75'
-    frontend
-        76mb@0' 102mb@20' 106mb@30' 119mb@45'
-    speedtest
-        20mb@0' 21mb@15' 25mb@30' 25mb@45' 24mb@60'
-    backend
-        36mb@0' 48mb@15' 56mb@30' 67mb@45' 76mb@60' start 15:40 
-    backend without vfs 4x  
-        32mb@0' 38mb@5' 52mb@18' 56mb@23' start 16:55
