@@ -1,0 +1,30 @@
+var paths = [ // this is were we are going to search for node.js
+    "%ProgramFiles%\\nodejs",
+    "%ProgramW6432%\\nodejs",
+    "C:\\your-customized-folder"
+];
+var WshShell = WScript.CreateObject("WScript.Shell");
+var fs = WScript.CreateObject("Scripting.FileSystemObject");
+var found;
+for (var i=0; i<=paths.length; i++) {
+    var path = WshShell.ExpandEnvironmentStrings(paths[i]+"\\node.exe");
+    if (fs.FileExists(path)) {
+        found = path;
+        break;        
+    }
+}
+if (!found) {
+    WSH.Echo("Can't find node");
+    WSH.Quit();
+}
+var path = WshShell.SpecialFolders("SendTo");
+var lnk = WshShell.CreateShortcut(path + "\\HFS.lnk");
+lnk.TargetPath = found;
+lnk.Arguments = WshShell.CurrentDirectory+'\\cli.js' 
+lnk.WindowStyle = 1;
+//lnk.Hotkey = "CTRL+SHIFT+F";
+//lnk.IconLocation = "notepad.exe, 0";
+lnk.Description = "publish in HFS";
+lnk.WorkingDirectory = WshShell.CurrentDirectory;
+lnk.Save();
+WSH.Echo("OK");
