@@ -21,13 +21,18 @@ socket.on('connect', function () {
     socket.emit('vfs.add', {uri:under, resource:fpath, depth:1}, function(data){
         if (!data) {
             log('communication error');
-            process.exit(1);
+            process.exit(2);
         }
         if (!data.ok) {
             log('error: '+(data.error || 'generic'));
-            process.exit(2);
+            process.exit(3);
         } 
         socket.disconnect();
         process.exit(0);
     });
+});
+
+socket.socket.on('error', function(err){
+    log('Server unreachable');
+    process.exit(1);
 });
