@@ -197,7 +197,10 @@ function basename(path) {
     return path.substr(i+1);
 } // basename
 
-function dirname(path) { return path.substr(0, path.length-basename(path)) }
+function dirname(path) {
+    path = path.excludeTrailing('/');
+    return path.substr(0, path.length-basename(path).length);
+} // dirname
 
 /** for now it's only a place-holder. We'll be able to transform data in a way to optimize socket.io communications */  
 function ioData(x) { return x }

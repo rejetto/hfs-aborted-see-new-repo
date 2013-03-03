@@ -61,7 +61,7 @@ function getReplyForFolder(folder, cb) {
     folder.dir(function(items){
         assert(items, 'items');                
         // convert items to a simpler format
-        items.forEach(function(f,name){
+        items._for(function(f,name){
             // we'll use short key names to save bandwidth on common fieldnames.
             var it = items[name] = {};
             // type
@@ -69,7 +69,7 @@ function getReplyForFolder(folder, cb) {
             // size
             if (f.isOnDisk())
                 it.s = f.stats.size;
-        });//forEach
+        });//for
 
         cb({items:items});    
     });//dir

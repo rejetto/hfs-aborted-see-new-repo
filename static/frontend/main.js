@@ -7,7 +7,8 @@ function loadJS(libs) {
 
 loadJS('extending|misc');
 
-var socket, currentFolder, listFromServer, foldersBefore=1;
+
+var socket, currentFolder, listFromServer, foldersBefore=1, currentPage=0;
 
 // this object will hold all the customizable stuff, that is added in file "tpl.js"  
 var TPL = function(event) {
@@ -24,7 +25,7 @@ loadJS('frontend/tpl');
 // understand the requested folder from the URL
 function getURLfolder() {
     var sub = location.hash.substr(1);
-    return sub.startsBy('/') ? sub : location.pathname+sub;
+    return sub.startsWith('/') ? sub : location.pathname+sub;
 } // getURLfolder
 
 $(function onJQ(){ // dom ready
@@ -32,12 +33,18 @@ $(function onJQ(){ // dom ready
     
     socket.on('connect', function onIO(){ // socket ready
         log('connected');
-        // try to restore last options
-        updateOrder(getCookie('order'));
-        updateMode(getCookie('mode'));
-        // change things at user will
-        $('#order').change(function(){ updateOrder(); redrawItems(); }); 
-        $('#mode').change(function(){ updateMode(); redrawItems(); });        
+
+        var saved = JSON.parse(getCookie('settings')) || {};
+        ['Order','Mode','Pagination'].forEach(function(v){
+            var lc = v.low();
+            var update = window['update'+v];
+            update(saved[lc]); // try to restore last options
+            // change things at user will
+            $('#'+lc).change(function(){ 
+                update();
+                redrawItems(); 
+            }); 
+        });
          
         loadFolder(getURLfolder(), function onFolder(){ // folder ready
 
@@ -54,8 +61,7 @@ $(function onJQ(){ // dom ready
     });//socket connect
     
     socket.on('vfs.changed', function(data){
-        log(data);
-        // it would be nicer to update only the changed item, but for now easily reload the whole dir  
+        // it would be nicer to update only the changed item, but for now easily reload the whole dir
         var folder = dirname(data.uri);
         if (folder === currentFolder) {
             loadFolder();            
@@ -149,6 +155,7 @@ function redrawItems() {
     // add a link to the parent folder
     var cf = currentFolder; // shortcut
     if (cf > '/') {
+        log(cf);
         addItem({
             label: '&uarr;&uarr;',
             url: dirname(cf).includeTrailing('/'),
@@ -156,10 +163,31 @@ function redrawItems() {
             icon: 'folder'
         });
     }
-    
-    // put all the items. We don't support pagination yet
-    for (var i=0, a=listFromServer.items, l=a.length; i<l; ++i) {
-        var o = $.extend({}, a[i]); // clone. The item will be manipulated (also inside addItem), and we don't want to make this changes persistant over changes of the view mode
+
+    // put the items (paginations is still incomplete)
+    var a = listFromServer.items;
+    var pages = Math.ceil(a.length/currentPagination);
+    if (currentPage >= pages) currentPage = pages-1;
+    var overflow = (currentPagination && currentPagination < a.length);
+    var ofs = overflow ? currentPage*currentPagination : 0;
+    var max = currentPagination ? Math.min(currentPagination, a.length-ofs) : a.length;
+
+    if (overflow) {
+        var d = $("<div id='paginator'>").prependTo('#items');
+        d.append("<button page='0'>|<</button>");
+        for (var i=1; i<pages-1; i++) {
+            d.append("<button page='{0}'>{1}</button>".x(i, i+1));
+        }
+        d.append("<button page='{0}'>>|</button>".x(pages-1));
+        $('#paginator button[page]').click(function(){
+            var v = +$(this).attr('page');
+            currentPage = v;
+            redrawItems();
+        });
+    }
+
+    for (var i=0; i<max; ++i) {
+        var o = $.extend({}, a[ofs+i]); // clone. The item will be manipulated (also inside addItem), and we don't want to make this changes persistant over changes of the view mode
         o.icon = o.type;
         addItem(o); 
     }
@@ -167,7 +195,7 @@ function redrawItems() {
 
 // build the DOM for the single item, applying possible filtering functions 
 function addItem(it) {
-    it.extend({'icon-file':getIconURI(it.icon)}); // make this additions before the hook, so it can change these too
+    it._expand({'icon-file':getIconURI(it.icon)}); // make this additions before the hook, so it can change these too
     TPL('onObjectItem', it); // custom treatment, especially mode-based
     $('<li>').append(TPL.item.format(it))
         .appendTo('#items')        
@@ -184,7 +212,7 @@ function itemClickHandler() {
             return false;
         }
                 
-        location.hash = (h.startsBy(location.pathname)) ? h.substr(location.pathname.length) : h;
+        location.hash = (h.startsWith(location.pathname)) ? h.substr(location.pathname.length) : h;
         loadFolder(h);
         return false;
     }
@@ -194,15 +222,34 @@ function itemClickHandler() {
     return true;
 } // itemClickHandler
 
+function updateSettingsCookie(settings) {
+    var v = getCookie('settings');
+    try { v = JSON.parse(v) }
+    catch(e) {}
+    if (!v || typeof v != 'object') v = {};
+    v._expand(settings);
+    setCookie('settings', JSON.stringify(v));
+} // updateSettingsCookie
+
 function updateMode(v){
     // if no value is passed, then read it from the DOM, otherwise write it in the DOM
     if (!v || !v.length) v = $('#mode').val(); 
     else $('#mode').val(v);
-    
+
     currentMode = v; // global 
-    setCookie('mode', v); // remember 
+    updateSettingsCookie({ mode: v }); // remember 
     $('body').attr('mode', v);
 } // updateMode
+
+function updatePagination(v){
+    // if no value is passed, then read it from the DOM, otherwise write it in the DOM
+    if (!v || !v.length) v = $('#pagination').val(); 
+    else $('#pagination').val(v);
+
+    currentPagination = v; // global
+    updateSettingsCookie({ pagination: v }); // remember 
+    redrawItems();
+} // updatePagination
 
 function updateOrder(v) {
     // if no value is passed, then read it from the DOM, otherwise write it in the DOM
@@ -210,7 +257,7 @@ function updateOrder(v) {
     else $('#order').val(v);
     
     currentOrder = v; // global
-    setCookie('order', v);  // remember
+    updateSettingsCookie({ order: v }); // remember
     if (v) {
         $('#order option[value=]').remove(); // after we have sorted the items there's no way to return to the original order, so let's hide this option
     }

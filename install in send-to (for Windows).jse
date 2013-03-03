@@ -22,8 +22,6 @@ var lnk = WshShell.CreateShortcut(path + "\\HFS.lnk");
 lnk.TargetPath = found;
 lnk.Arguments = WshShell.CurrentDirectory+'\\cli.js' 
 lnk.WindowStyle = 1;
-//lnk.Hotkey = "CTRL+SHIFT+F";
-//lnk.IconLocation = "notepad.exe, 0";
 lnk.Description = "publish in HFS";
 lnk.WorkingDirectory = WshShell.CurrentDirectory;
 lnk.Save();
