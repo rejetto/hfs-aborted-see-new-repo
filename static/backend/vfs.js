@@ -1,6 +1,13 @@
 tpl.item = "<li>"
     +"<span class='expansion-button'></span> <span class='icon'></span> <span class='label'></span>"
     +"</li>";
+tpl.tempItem = "<li>"
+    +"<span class='expansion-button'></span>"
+    +"<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='width:1.5em; height:1.5em; position:absolute;' viewBox='0 0 100 100'>"
+        +"<circle cx='20' cy='20' r='20' stroke='#000' stroke-width='2' fill='rgba(0,0,0,0.3)'/>"
+    +"</svg>"
+    +"<span class='icon'></span> <span class='label'></span>"
+    +"</li>";
 
 tpl.noChildren = "<span class='no-children'>nothing</span>";
 
@@ -14,7 +21,7 @@ $(function(){
 
     socket.on('vfs.changed', function(data){
         ioData(data);
-        if (!log('vfs.changed',data)) return; // something wrong
+        if (!log('vfs.changed',data)) return; // something's wrong
         var folder = data.uri.substr(0, data.uri.lastIndexOf('/')+1);
         var it = getItemFromURI(folder);
         if (!it) return; // not in the visible tree: ignore
@@ -33,7 +40,7 @@ function bindItem() {
     inputBox('Enter path', function(s){
         if (!s) return;    
         socket.emit('vfs.set', ioData({ uri:getURI(it), resource:s }), function(result){
-            result.ok   
+            result.ok
                 ? reloadVFS(it)
                 : msgBox(result.error);
         });
@@ -125,7 +132,7 @@ function restoreAllItems(li) {
     li = li.closest('li.item');
     socket.emit('vfs.restore', ioData({ uri:getURI(li), resource:'*' }), function(result){
         if (!result.ok) return;
-        reloadVfs(li);
+        reloadVFS(li);
     });    
 } // restoreAllItems
 
@@ -429,7 +436,7 @@ function isRoot(it) { return getURI(it) == '/' }
 
 function isExpanded(x) { return asLI(x).hasClass('expanded') }
 
-function isDeleted(x) { return asLI(x).closest('.deleted-items').length }
+function isDeleted(x) { return asLI(x).parent().closest('.deleted-items').length }
 
 function getURI(item) {
     item = asItem(item);
@@ -520,6 +527,7 @@ function setExpanded(item, state) {
 } // setExpanded
 
 function expandAndLoad(li) {
+    if (isDeleted(li)) return false;
     li = asLI(li);
     setExpanded(li);
     if (li.hasClass('item'))
@@ -624,9 +632,10 @@ function addItemUnder(under, item, position) {
     
      
     under.children('span.no-children').remove(); // remove any place holder
-    var el = $(tpl.item).addClass(item.deleted ? 'deleted' : 'item');
+    var $tpl = tpl[(item.nodeKind == 'temp') ? 'tempItem' : 'item']; 
+    var el = $($tpl).addClass(item.deleted ? 'deleted' : 'item');
     var beforeThis; // where to put the new item
-    if (position.isIn('top','sorted')) { // both require to put the item after special items (so skip them)
+    if (position._among('top','sorted')) { // both require to put the item after special items (so skip them)
         beforeThis = getFirstChild(under); // go down one level
         // skip special items
         while (beforeThis.length && !beforeThis.hasClass('item')) { 
