@@ -90,7 +90,7 @@ $(function onJQ(){ // dom ready
                 lbl.css('background-color','');
                 lbl.removeData('remove bg',null);
             }
-        },
+        }
     });//live
 
 });//dom ready
@@ -172,8 +172,9 @@ function redrawItems() {
     var ofs = overflow ? currentPage*currentPagination : 0;
     var max = currentPagination ? Math.min(currentPagination, a.length-ofs) : a.length;
 
+    $('#paginator').remove();
     if (overflow) {
-        var d = $("<div id='paginator'>").prependTo('#items');
+        var d = $("<div id='paginator'>").insertBefore('#items');
         d.append("<button page='0'>|<</button>");
         for (var i=1; i<pages-1; i++) {
             d.append("<button page='{0}'>{1}</button>".x(i, i+1));
@@ -239,6 +240,26 @@ function updateMode(v){
     currentMode = v; // global 
     updateSettingsCookie({ mode: v }); // remember 
     $('body').attr('mode', v);
+
+    /* float mode used by 'tiles' is CPU expensive when we get many items (500+ on a core2duo@2.1).
+     * To ease this task we periodically set fixed line breaks.
+     */
+    if (v == 'tiles') {
+        if (updateMode.h) clearInterval(updateMode.h);
+        function update(){
+            var d = $('#items');
+            var x = d.children(':first').width();
+            if (!x) return; // no items
+            var n = Math.floor(d.width() / x)-1; // -1 because we leave some space for the properties
+            var should = d.children(':nth-child({0}n+1):not(:first)'.x(n));
+            if (should[0] === d.children('.forced-br:first')[0]) return; // nothing changed
+            d.children('.forced-br').removeClass('forced-br'); // clean
+            log(should).addClass('forced-br'); // set new br
+            //clearInterval(updateMode.h);
+        }
+        updateMode.h = setInterval(update, 100);
+        update();
+    }
 } // updateMode
 
 function updatePagination(v){

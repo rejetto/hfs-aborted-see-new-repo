@@ -4,6 +4,8 @@ a img { border:0; } /* conform IE */
 .full-label { position:absolute; padding-right:1em; text-align:left; }
 
 /*  tiles */
+[mode=tiles] #items li { display:inline-block; } /* without this, the LI has height:0 */
+[mode=tiles] #items li.forced-br { display:block; } /* used for easeing the CPU */
 [mode=tiles] .item-link { float:left; width:9em; height:9em; overflow:hidden;
     text-align:center; text-decoration:none;     
     margin:1px; /* reserve space for the border on hover */ 
