@@ -73,7 +73,7 @@ function nodeToObject(fnode, depth, cb) {
     // recur on children
     fnode.dir(function(items){
         res.children = [];
-        async.forEach(items.getProperties(), function(e, doneThis){
+        async.forEach(items._values(), function(e, doneThis){
             nodeToObject(e, depth-1, function(obj){
                 res.children.push(obj);
                 doneThis();
