@@ -92,10 +92,10 @@ String.extend('endsWith', function(sub, caseInsensitive) {
     return 0 <= this.search(new RegExp(sub.escapeRegExp()+'$', caseInsensitive ? 'i' : ''));  
 });
 
-String.extend('includeLeading', function(sub) { return this.startsBy(sub) ? this : sub+this }); 
+String.extend('includeLeading', function(sub) { return this.startsWith(sub) ? this : sub+this });
 String.extend('includeTrailing', function(sub) { return this.endsWith(sub) ? this : this+sub });
 // if in the following function the casting to string is not made, the resulting typeof is 'object' instead of 'string' (causing problems in some cases, e.g. using path.join)
-String.extend('excludeLeading', function(sub) { return this.startsBy(sub) ? this.slice(sub.length) : ''+this }); 
+String.extend('excludeLeading', function(sub) { return this.startsWith(sub) ? this.slice(sub.length) : ''+this });
 String.extend('excludeTrailing', function(sub) { return this.endsWith(sub) ? this.slice(0,-sub.length) : ''+this });
 
 // handy shortcuts

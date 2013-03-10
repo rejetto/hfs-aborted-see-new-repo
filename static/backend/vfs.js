@@ -4,7 +4,7 @@ tpl.item = "<li>"
 tpl.tempItem = "<li>"
     +"<span class='expansion-button'></span>"
     +"<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='width:1.5em; height:1.5em; position:absolute;' viewBox='0 0 100 100'>"
-        +"<circle cx='20' cy='20' r='20' stroke='#000' stroke-width='2' fill='rgba(0,0,0,0.3)'/>"
+        +"<circle cx='0' cy='0' r='25' stroke='#000' stroke-width='2' fill='rgba(200,200,0,0.4)'/>"
     +"</svg>"
     +"<span class='icon'></span> <span class='label'></span>"
     +"</li>";
@@ -429,7 +429,7 @@ function isFolder(it) {
         return true;
     }
     it = asItem(it);
-    return it && it.itemKind.endsBy('folder');
+    return it && it.itemKind.endsWith('folder');
 } // isFolder
 
 function isRoot(it) { return getURI(it) == '/' }
@@ -621,7 +621,7 @@ function addItemUnder(under, item, position) {
     && typeof item == 'string') { // automatic construction of the special item
         item = {
             deleted: true,
-            itemKind: item.endsBy('/') ? 'folder' : 'file',
+            itemKind: item.endsWith('/') ? 'folder' : 'file',
             name: item.excludeTrailing('/'),
         };
     }
