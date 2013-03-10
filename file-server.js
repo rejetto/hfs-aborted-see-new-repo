@@ -5,9 +5,11 @@
 var http = require('http');
 var socket_io = require('socket.io');
 var serving = require('./lib/serving');
+var listeningOn; // keep track of the tcp coordinates we are currently accepting requests
 
 exports.start = function(listenOn) {
     listeningOn = listenOn;
+    exports.listeningOn = listeningOn;
     srv.listen(listenOn.port, listenOn.ip, function onListen(){
         dbg('listening on port '+listenOn.port);
     });
@@ -16,8 +18,6 @@ exports.start = function(listenOn) {
 /*
    SET UP THE HTTP SERVER
 */
-
-var listeningOn; // keep track of the tcp coordinates we are currently accepting requests 
 
 var srv = http.createServer(function(httpReq,httpRes){
     if (!serving.parseUrl(httpReq)) return;        

@@ -197,7 +197,7 @@ io.sockets.on('connection', function(socket){
 
         vfs.fromUrl(data.uri, function(fnode){
             if (!fnode) {
-                serving.ioError(cb, 'uri not found')
+                serving.ioError(cb, 'uri not found');
                 return;
             }
             if (data.resource === '*') { // special case, restore all
@@ -220,7 +220,10 @@ io.sockets.on('connection', function(socket){
     socket.on('info.get', function onInfo(data, cb){
         serving.ioData(data);
         dbg('info.get', data);
-        serving.ioOk(cb, {caseSensitiveFileNames:misc.caseSensitiveFileNames});
+        serving.ioOk(cb, {
+            caseSensitiveFileNames:misc.caseSensitiveFileNames,
+            frontEnd: log(GLOBAL.fileServer.listeningOn)
+        });
     });
     
 });

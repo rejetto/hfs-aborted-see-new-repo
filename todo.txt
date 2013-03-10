@@ -2,10 +2,9 @@
 debugging console via telnet (still working very bad)
 improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
-backend: vfs: overlay icon to signalise temp nodes (based on nodeKind) 
-BUG: root.set('C:\\windows\\system32')
 
 === NEXT
+bug: current vfs configuration is not showing all items
 
 === AFTER
 ? comply with standard callback(err,data)

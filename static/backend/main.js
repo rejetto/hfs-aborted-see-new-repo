@@ -18,12 +18,13 @@ function addStyleRule(selector, declaration) {
 } // addStyleRule 
 
 $(function(){ // dom ready
-    socket = io.connect(window.location.origin)
+    socket = io.connect(window.location.origin);
     
     setupEventHandlers();
     socket.on('connect', function(){ // socket ready
         socket.emit('info.get', ioData({}), function(data){
             serverInfo = data||{};
+            $('#frontend-link').attr('href', '//localhost:{0}'.x(serverInfo.frontEnd.port));
             reloadVFS();
         });
     });

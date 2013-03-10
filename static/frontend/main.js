@@ -155,7 +155,6 @@ function redrawItems() {
     // add a link to the parent folder
     var cf = currentFolder; // shortcut
     if (cf > '/') {
-        log(cf);
         addItem({
             label: '&uarr;&uarr;',
             url: dirname(cf).includeTrailing('/'),
@@ -254,7 +253,7 @@ function updateMode(v){
             var should = d.children(':nth-child({0}n+1):not(:first)'.x(n));
             if (should[0] === d.children('.forced-br:first')[0]) return; // nothing changed
             d.children('.forced-br').removeClass('forced-br'); // clean
-            log(should).addClass('forced-br'); // set new br
+            should.addClass('forced-br'); // set new br
             //clearInterval(updateMode.h);
         }
         updateMode.h = setInterval(update, 100);

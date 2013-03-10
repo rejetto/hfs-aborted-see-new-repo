@@ -17,7 +17,7 @@ a img { border:0; } /* conform IE */
 [mode=tiles] .item-details { display:none; }
 [mode=tiles] .item-link:hover + .item-details { display:block; float:left; }
 [mode=tiles] .item-details-wrapper { position:absolute; background:#ffe; border:1px solid #eec; padding:0.2em 0.4em; }
-[mode=tiles] .full-label { max-width:17em; } 
+[mode=tiles] .full-label { max-width:17em; border-right:1px solid #ccc; }
 
 /*  list */ 
 [mode=list] li { border-bottom:1px solid #eee; height:1.5em; }
