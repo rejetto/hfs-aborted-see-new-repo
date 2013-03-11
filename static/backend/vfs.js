@@ -95,7 +95,7 @@ function deleteItem() {
             return;
         }
         // if this number has changed, then we need to do a little extra work: the item became a deleted item.
-        if (log('old',oldNumber) !== log('now',result.folderDeletedCount)) {
+        if (oldNumber !== result.folderDeletedCount) {
             updateDeletedItems(parent, {adding:result.dynamicItem});
         }
         // GUI refresh
