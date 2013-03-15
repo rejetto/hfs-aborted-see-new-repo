@@ -1,12 +1,12 @@
 tpl.item = "<li>"
-    +"<span class='expansion-button'></span> <span class='icon'></span> <span class='label'></span>"
+    +"<span class='expansion-button'></span><span class='icon'></span><span class='label'></span>"
     +"</li>";
 tpl.tempItem = "<li>"
     +"<span class='expansion-button'></span>"
     +"<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='width:1.5em; height:1.5em; position:absolute;' viewBox='0 0 100 100'>"
         +"<circle cx='0' cy='0' r='25' stroke='#000' stroke-width='2' fill='rgba(200,200,0,0.4)'/>"
     +"</svg>"
-    +"<span class='icon'></span> <span class='label'></span>"
+    +"<span class='icon'></span><span class='label'></span>"
     +"</li>";
 
 tpl.noChildren = "<span class='no-children'>nothing</span>";

@@ -1,6 +1,6 @@
 assert(TPL, 'tpl');
 
-TPL.item = 
+TPL.item =
     "<a href='{url}' class='item-link'><img src='{icon-file}' /><span class='item-label'>{label}</span></a>"
     +"<div class='item-details'><div class='item-details-wrapper'>"
         +"<div class='item-type'>{type}</div>"
