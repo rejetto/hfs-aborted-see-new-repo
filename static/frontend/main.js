@@ -98,7 +98,7 @@ $(function onJQ(){ // dom ready
 // ask the server for the items list of the specified folder, then sort and display
 function loadFolder(path /** optional */, cb /** optional */) {
     if (path) currentFolder = path;
-    $('#folder').text(currentFolder);                
+    $('#folder').text(decodeURI(currentFolder));
     socket.emit('get list', { path:currentFolder }, function onGetList(reply){
         listFromServer = reply; // hold it in a global variable, to not loose it
         convertList(reply);
