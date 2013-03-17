@@ -479,29 +479,33 @@ function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
     var loader = $(tpl.loader).appendTo( e.find('.label:first') );
     socket.emit('vfs.get', ioData({ uri:item ? getURI(item) : '/', depth:1 }), function(data){
-        if (!log('vfs.get',data)) return;
-        var n = tryGet(data, 'children.length');
-        if (n > LOTS_OF_FILE_IN_FOLDER
-        && !confirm('This folder contains {0} items. It may slow down your computer. Continue?'.x(n))) {
-            setExpanded(e, false);
-            return;
+        try {
+            if (!log('vfs.get',data)) return;
+            var n = tryGet(data, 'children.length');
+            if (n > LOTS_OF_FILE_IN_FOLDER
+            && !confirm('This folder contains {0} items. It may slow down your computer. Continue?'.x(n))) {
+                setExpanded(e, false);
+                return;
+            }
+            bindItemToDOM(data, e);
+            setExpanded(e);
+            var ul = e.find('ul:first');
+            ul.empty();  // clean, first
+            updateDeletedItems(e);
+            if (n) {
+                data.children.forEach(function(it){
+                    addItemUnder(e, it);
+                });
+            }
+            else if (!ul.children().length) { // there may be special items making UL non-empty
+                ul.append(tpl.noChildren);
+            }
+            if (cb) cb();
         }
-        bindItemToDOM(data, e);
-        setExpanded(e);
-        var ul = e.find('ul:first');
-        ul.empty();  // clean, first
-        updateDeletedItems(e);
-        if (n) {
-            data.children.forEach(function(it){
-                addItemUnder(e, it);            
-            });
+        finally {
+            loader.remove();
         }
-        else if (!ul.children().length) { // there may be special items making UL non-empty
-            ul.append(tpl.noChildren);
-        }
-        loader.remove();
-        if (cb) cb();
-    });    
+    });
 } // reloadVFS
 
 /** util function for those functions who want to accept several types but work with the $(LI)  */
