@@ -129,3 +129,6 @@ http://superdit.com/2011/06/01/extjs-simple-file-browser/
         - it needs access to a webservice, so it needs a server part that will proxy the webservice
             NEED: respond to its own socket.io messages        
            
+=== USEFUL STUFF
+file system errors http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/errno.h.html
+C lib reference http://publib.boulder.ibm.com/infocenter/zos/v1r12/index.jsp?topic=%2Fcom.ibm.zos.r12.bpxbd00%2Frtread.htm

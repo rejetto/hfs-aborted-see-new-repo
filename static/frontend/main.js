@@ -111,29 +111,24 @@ function loadFolder(path /** optional */, cb /** optional */) {
     });
 } // loadFolder
 
-// convert the data: from object to array, so it can be sorted, and expands some field-names
+// convert the data: expands some field-names
 function convertList(serverReply) {
-    var a = serverReply.items;
-    var clientFormat = [];
-    for (var k in a) {
-        var o = a[k];
-        renameProperties(o, {t:'type', s:'size'});
-        o.label = k;            
+    for (var a=serverReply.items, i=a.length; i--;) {
+        var o = a[i];
+        renameProperties(o, { n:'label', t:'type', s:'size'});
         switch (o.type) {
             case undefined: // no type is default type: file
-                o.type = 'file';
+                o.type = 'file'; // now continue with the case 'file'
             case 'file': // for files, calculate specific type
-                o.type = nameToType(k) || o.type;
+                var t = nameToType(o.label);
+                if (t) o.type = t;
                 break;
             case 'link':
                 o.url = o.resource; 
                 break;  
         }
-        o.url = o.url || encodeURI(currentFolder)+encodeURI(k)+(o.type == 'folder' ? '/' : '');
-        
-        clientFormat.push(o);
+        o.url = o.url || encodeURI(currentFolder)+encodeURI(o.label)+(o.type == 'folder' ? '/' : '');
     }
-    serverReply.items = clientFormat;
 } // convertList
 
 // takes an object and renames some of its properties to the mapped names

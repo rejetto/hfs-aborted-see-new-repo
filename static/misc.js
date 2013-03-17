@@ -205,6 +205,48 @@ function dirname(path) {
 /** for now it's only a place-holder. We'll be able to transform data in a way to optimize socket.io communications */  
 function ioData(x) { return x }
 
+
+/** try to get a nested value, without rising exception in case of non-existent property in the middle of the path to the result
+ * Possible parameters:
+ *      context (object, optional): where to extract data, if not specified then global object (window) is used
+ *      dotted property (string | array of strings): sequence of properties separated by dots, actually the path to the data.
+ *          A key may also be a method call, just postpone the ()
+ *      default (optional): what to extract if the property is not present. If the property is present and its value is undefined, undefined will be returned
+ */
+function tryGet() {
+    var a = arguments;
+    var run = window;
+    var path, def;
+    var first = a[0];
+    var type = typeof first;
+    if (type == 'undefined') {
+        return (a.length > 2) ? a[a.length-1] : undefined;
+    }
+    if (type == 'string') {
+        path = first;
+        def = a[1];
+    }
+    else if (type == 'object') {
+        run = first;
+        path = a[1];
+        def = a[2];
+    }
+    else assert(0, 'bad args');
+    try {
+        run = eval('run.'+path)
+        return (run === undefined) ? def : run;
+    }
+    catch(e) { return def }
+} // tryGet
+
+// useful when you want to do something only once
+function once(scope) {
+    scope = scope || 'global';
+    if (!once.flags) once.flags = {};
+    if (once.flags[scope]) return false;
+    return once.flags[scope] = 1;
+} // once
+
 /* CURRENTLY UNUSED
 
 // reports how many pixels the element is exceeding the viewport, on the right side

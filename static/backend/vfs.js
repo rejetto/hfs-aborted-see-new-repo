@@ -1,3 +1,5 @@
+LOTS_OF_FILE_IN_FOLDER = 1000;
+
 tpl.item = "<li>"
     +"<span class='expansion-button'></span><span class='icon'></span><span class='label'></span>"
     +"</li>";
@@ -177,9 +179,9 @@ function showExpansionButtons(state /** optional */) {
     animate(expansionCss, 'opacity', 1, {duration:0.2});
 } // showExpansionButtons              
 
-function expandOrCollapseFolder(li) {
+function toggleExpanded(li) {
     isExpanded(li) ? setExpanded(li, false) : expandAndLoad(li);
-} // expandOrCollapseFolder
+} // toggleExpanded
 
 // some event handlers
 $(function(){
@@ -197,7 +199,7 @@ $(function(){
             removeBrowserSelection();
             var it = getFirstSelected();
             if (isFolder(it)) {
-                expandOrCollapseFolder(it);
+                toggleExpanded(it);
             }
         },
         mouseover: function(ev){
@@ -216,7 +218,7 @@ $(function(){
             ev.stopImmediatePropagation();
             removeBrowserSelection();
             var li = $(ev.target).closest('li');
-            expandOrCollapseFolder(li);
+            toggleExpanded(li);
         },
         mouseover: function(ev){
             $('#vfs .expansion-button.hovered').removeClass('hovered');
@@ -463,7 +465,7 @@ function vfsUpdateButtons() {
     var li = getFirstSelected();
     var it = asItem(li);
     enableButton('addItem', !li.length || it && !it.deleted); 
-    enableButton('bindItem', it && it.itemKind === 'virtual folder');
+    enableButton('bindItem', it);
     enableButton('renameItem', it && !isRoot(it) && !isDeleted(it)); 
     enableButton('deleteItem', it && !isRoot(it)); 
 } // vfsUpdateButtons 
@@ -476,16 +478,23 @@ function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
     socket.emit('vfs.get', ioData({ uri:item ? getURI(item) : '/', depth:1 }), function(data){
         if (!log('vfs.get',data)) return;
-        var ul = e.find('ul').empty();  // remove possible children
+        var n = tryGet(data, 'children.length');
+        if (n > LOTS_OF_FILE_IN_FOLDER
+        && !confirm('This folder contains {0} items. It may slow down your computer. Continue?'.x(n))) {
+            setExpanded(e, false);
+            return;
+        }
         bindItemToDOM(data, e);
         setExpanded(e);
+        var ul = e.find('ul:first');
+        ul.empty();  // clean, first
         updateDeletedItems(e);
-        if (data.children.length) {
+        if (n) {
             data.children.forEach(function(it){
                 addItemUnder(e, it);            
             });
         }
-        else if (!ul.children().length) {
+        else if (!ul.children().length) { // there may be special items making UL non-empty
             ul.append(tpl.noChildren);
         }
         if (cb) cb();
@@ -622,7 +631,7 @@ function addItemUnder(under, item, position) {
         item = {
             deleted: true,
             itemKind: item.endsWith('/') ? 'folder' : 'file',
-            name: item.excludeTrailing('/'),
+            name: item.excludeTrailing('/')
         };
     }
 

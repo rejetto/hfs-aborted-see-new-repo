@@ -73,7 +73,7 @@ function nodeToObject(fnode, depth, cb) {
     // recur on children
     fnode.dir(function(items){
         res.children = [];
-        async.forEach(items._values(), function(e, doneThis){
+        async.forEach(items, function(e, doneThis){
             nodeToObject(e, depth-1, function(obj){
                 res.children.push(obj);
                 doneThis();
@@ -93,12 +93,12 @@ io.sockets.on('connection', function(socket){
     socket.on('vfs.get', function onGet(data, cb) {
         serving.ioData(data);
         dbg('vfs.get', data);
-        if (serving.ioError(cb, !data ? data
+        if (serving.ioError(cb, !data ? 'data'
             : typeof data.uri != 'string' ? 'uri'
             : null)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
-            nodeToObject(fnode, data.depth, cb);                
+            nodeToObject(fnode, data.depth, cb);
         });
     });
 
@@ -210,7 +210,11 @@ io.sockets.on('connection', function(socket){
                 serving.ioError(cb, 'failed');
                 return;
             }
-            fnode.createFileNodeFromRelativeUri(data.resource, function(child){
+            fnode.createChildRelatively(data.resource, function(err, child){
+                if (err) {
+                    serving.ioError(err);
+                    return;
+                }
                 serving.ioOk(cb, {item:child});
                 notifyVfsChange(socket, fnode.getURI());
             });
