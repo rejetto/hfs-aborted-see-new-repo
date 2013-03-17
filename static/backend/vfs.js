@@ -12,6 +12,7 @@ tpl.tempItem = "<li>"
     +"</li>";
 
 tpl.noChildren = "<span class='no-children'>nothing</span>";
+tpl.loader = "<img src='/~/pics/loader.gif' class='near-text' />";
 
 $(function(){
     $(tpl.item).addClass('item').appendTo($('<ul>').appendTo('#vfs')); // create the root element
@@ -476,6 +477,7 @@ function enableButton(name, condition) {
 
 function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
+    var loader = $(tpl.loader).appendTo( e.find('.label:first') );
     socket.emit('vfs.get', ioData({ uri:item ? getURI(item) : '/', depth:1 }), function(data){
         if (!log('vfs.get',data)) return;
         var n = tryGet(data, 'children.length');
@@ -497,6 +499,7 @@ function reloadVFS(item, cb) {
         else if (!ul.children().length) { // there may be special items making UL non-empty
             ul.append(tpl.noChildren);
         }
+        loader.remove();
         if (cb) cb();
     });    
 } // reloadVFS

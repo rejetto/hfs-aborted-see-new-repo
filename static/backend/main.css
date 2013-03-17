@@ -12,4 +12,6 @@ a img { border:0; } /* conform IE */
 #vfs .no-children { color:#888; }
 #vfs .no-children:before,
 #vfs .no-children:after { content:"..."; }
-#vfs li .icon img { height:1.5em; margin-right:0.5em; vertical-align:middle;  }
+#vfs li .icon img { margin-right:0.5em }
+#vfs li .icon img,
+img.near-text { height:1.5em; vertical-align:middle; }
