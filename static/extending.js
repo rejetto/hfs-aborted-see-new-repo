@@ -190,3 +190,5 @@ Object.extend('_values', function(){
             res.push(this[i]);
     return res; 
 }); // Object._values
+
+Object.extend('_clone', function() { return $.extend({}, this) });

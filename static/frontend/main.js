@@ -100,6 +100,7 @@ function loadFolder(path /** optional */, cb /** optional */) {
     if (path) currentFolder = path;
     $('#folder').text(decodeURI(currentFolder));
     socket.emit('get list', { path:currentFolder }, function onGetList(reply){
+        if (showError(reply)) return;
         listFromServer = reply; // hold it in a global variable, to not loose it
         convertList(reply);
         $('#folder-info').html("number of items: "+reply.items.length);
@@ -111,9 +112,18 @@ function loadFolder(path /** optional */, cb /** optional */) {
     });
 } // loadFolder
 
-// convert the data: expands some field-names
+function showError(reply) {
+    if (reply.ok) return false;
+    if (reply.error) alert('Error: '+reply.error);
+    return true;
+} // showError
+
+// convert file list format: expands some field-names
 function convertList(serverReply) {
-    for (var a=serverReply.items, i=a.length; i--;) {
+    if (!serverReply) return;
+    var a = serverReply.items;
+    if (!a) return;
+    for (var i=a.length; i--;) {
         var o = a[i];
         renameProperties(o, { n:'label', t:'type', s:'size'});
         switch (o.type) {
@@ -127,7 +137,7 @@ function convertList(serverReply) {
                 o.url = o.resource; 
                 break;  
         }
-        o.url = o.url || encodeURI(currentFolder)+encodeURI(o.label)+(o.type == 'folder' ? '/' : '');
+        o.url = o.url || escapeLink(currentFolder+o.label)+(o.type == 'folder' ? '/' : '');
     }
 } // convertList
 
@@ -158,35 +168,38 @@ function redrawItems() {
         });
     }
 
-    // put the items (paginations is still incomplete)
-    var a = listFromServer.items;
-    var pages = Math.ceil(a.length/currentPagination);
+    var n = listFromServer.items.length;
+    var pages = Math.ceil(n/currentPagination);
     if (currentPage >= pages) currentPage = pages-1;
-    var overflow = (currentPagination && currentPagination < a.length);
+    var overflow = (currentPagination && currentPagination < n);
     var ofs = overflow ? currentPage*currentPagination : 0;
-    var max = currentPagination ? Math.min(currentPagination, a.length-ofs) : a.length;
+    var max = currentPagination ? Math.min(currentPagination, n-ofs) : n;
 
     $('#paginator').remove();
-    if (overflow) {
+    if (overflow) { // draw a paginator
         var d = $("<div id='paginator'>").insertBefore('#items');
-        d.append("<button page='0'>|<</button>");
+        d.append("Pages <button page='0'>1</button>");
         for (var i=1; i<pages-1; i++) {
             d.append("<button page='{0}'>{1}</button>".x(i, i+1));
         }
-        d.append("<button page='{0}'>>|</button>".x(pages-1));
+        d.append("<button page='{0}'>{1}</button>".x(pages-1, pages));
         $('#paginator button[page]').click(function(){
-            var v = +$(this).attr('page');
-            currentPage = v;
+            currentPage = +$(this).attr('page');
             redrawItems();
-        });
+        }).attr('disabled',false).filter('[page={0}]'.x(currentPage)).attr('disabled',true); // highlight current page (by disabling the button)
     }
 
-    for (var i=0; i<max; ++i) {
-        var o = $.extend({}, a[ofs+i]); // clone. The item will be manipulated (also inside addItem), and we don't want to make this changes persistant over changes of the view mode
+    for (var a=listFromServer.items, i=0; i<max; ++i) {
+        var o = a[ofs+i]._clone(); // The item will be manipulated (also inside addItem), and we don't want to make this changes persistent over view modes
         o.icon = o.type;
-        addItem(o); 
+        addItem(o);
     }
 } // redrawItems
+
+function escapeLink(s) {
+    //return encodeURI(s)
+    return s.replace('"','&quot;').replace("'", '&#39;').replace('%','%25')
+}
 
 // build the DOM for the single item, applying possible filtering functions 
 function addItem(it) {
