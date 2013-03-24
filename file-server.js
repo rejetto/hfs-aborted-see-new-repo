@@ -85,7 +85,7 @@ function serveFromVFS(httpReq, httpRes) {
         }
 
         if (node.isFile()) {
-            return serving.serveFile(node.resource, httpRes, node.stats.size);  
+            return serving.serveFile(node.resource, httpRes, { download:1, stats:node.stats, name:node.name });
         }
         
         assert(node.isFolder(), 'must be folder');

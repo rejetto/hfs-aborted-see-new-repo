@@ -4,6 +4,7 @@ improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
 
 === NEXT
+resume
 
 === AFTER
 while loading a folder, show an animation (both front-end and back-end)

@@ -140,6 +140,22 @@ Array.extend('some', function(cb) {
     return false;
 });  // Array.some
 
+Array.extend('last', function(){
+    return this.length ? this[this.length-1] : undefined
+});
+
+Array.extend('unique', function() {
+    return this.sort().filter( function(v,i,o){ return v!==o[i-1] })
+});
+
+// as map(), but overwrite elements instead of creating a new array
+Array.extend('remap', function(cb){
+    for (var i=0, n=this.length; i<n; i++) {
+        this[i] = cb.call(this, this[i], i, this);
+    }
+    return this;
+});
+
 ///////// EXTENDING OBJECT
 
 Object.extend('_getKeyOf', function(value) {
@@ -191,4 +207,31 @@ Object.extend('_values', function(){
     return res; 
 }); // Object._values
 
-Object.extend('_clone', function() { return $.extend({}, this) });
+Object.extend('_clone', function() { return $ ? $.extend({}, this) : ceLib.clone(this) });
+
+Object.extend('_log', function(){
+    var a = [this];
+    if (arguments.length) a.unshift(arguments[0]);
+    return log.apply(this, a);
+});
+
+// often useful with "arguments"
+Object.extend('_toArray', function() { return Array.prototype.slice.call(this) });
+
+// filter properties of this object, leaving only some of them. Accepted: array of keys, callback(value,key), callback as lambda, string(csv starting with a comma to distinguish from lambda)
+Object.extend('_filter', function(what) {
+    if (typeof what == 'string') {
+        what = (what.startsWith(',')) ? what.ss(1).split(',') : L(what);
+    }
+    if (what instanceof Array) {
+        var arr = what; // need closure
+        what = function(v,k){ return arr.contains(k) };
+    }
+    assert(typeof what == 'function', 'bad args');
+    for (var k in this) {
+        if (!what.call(this, this[k], k)) {
+            delete this[k];
+        }
+    }
+    return this;
+});

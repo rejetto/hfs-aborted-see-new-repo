@@ -2,7 +2,7 @@
  * @fileOverview command line interface to the server 
  * @author Massimo Melina <a@rejetto.com> 
  */ 
-require('./lib/common');
+require('./lib/libs');
 var socket_io = require('socket.io-client');
 
 // read arguments
