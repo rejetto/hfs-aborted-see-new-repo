@@ -26,7 +26,7 @@ modules that could be useful
 === SHOULD I SWITCH TO PYTHON 3?
 now tornado supports python3. Reconsider.
     PROS
-    - (?) wider programmers community
+    - wider programmers community
     - more libraries (sure? libs need to be async, don't they? so, they may even be fewer)
     CONS
-    - have to port what's already written
+    - have to port the whole server part

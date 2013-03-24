@@ -5,7 +5,7 @@ function loadJS(libs) {
     } 
 }
 
-loadJS('extending|misc');
+loadJS('extending|cs-shared|misc');
 
 var socket;
 
