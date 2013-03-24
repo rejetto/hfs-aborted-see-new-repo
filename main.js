@@ -1,7 +1,7 @@
 /**
  * @author Massimo Melina <a@rejetto.com> 
  */ 
-require('./lib/common');
+require('./lib/libs');
 //debug();
 
 GLOBAL.vfs = new vfsLib.Vfs();
@@ -12,7 +12,7 @@ vfs.root.add('C:\\temp');
 vfs.root.add('C:\\windows\\system32'); // used to test many files (2k+)
 */
 GLOBAL.fileServer = require('./file-server');
-fileServer.start({ port:9988, ip:'0.0.0.0' });
+fileServer.start({ port:80, ip:'0.0.0.0' });
 
 GLOBAL.adminServer = require('./admin-server');
 adminServer.start({ port:88, ip:'127.0.0.1' });
