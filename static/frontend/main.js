@@ -74,9 +74,9 @@ $(function onJQ(){ // dom ready
             if (!$(this).isOverflowed()) return; // fine!
             // our label is clipped
             var lbl = $(this).find('.item-label');
-            // make some changes so it's hopefully fully visible  
+            // make some changes so it's hopefully fully visible
             lbl.addClass('full-label');
-            // if no bg was assigned, the enlarged label may overlap other elements, and its transparency may cause very bad readability 
+            // if no bg was assigned, the enlarged label may overlap other elements, and its transparency may cause very bad readability
             if (isTransparent(lbl.css('background-color'))) {
                 lbl.css('background-color', lbl.getClosestBackgroundColor() || '#fff')
                     .data('remove bg', true);

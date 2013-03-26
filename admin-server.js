@@ -23,7 +23,7 @@ var srv = http.createServer(function(httpReq,httpRes){
 
     if (serving.serveStatic(httpReq, httpRes)) return; // access to the special 'static' folder
     if (httpReq.uri == '/') {
-        serving.serveFile('static/backend/index.html', httpRes);
+        serving.serveFile('static/backend/index.html', httpReq, httpRes);
         return;
     }
     serve404(httpRes); // we serve nothing else

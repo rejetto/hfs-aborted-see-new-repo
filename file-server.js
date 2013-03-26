@@ -85,7 +85,7 @@ function serveFromVFS(httpReq, httpRes) {
         }
 
         if (node.isFile()) {
-            return serving.serveFile(node.resource, httpRes, { download:1, stats:node.stats, name:node.name });
+            return serving.serveFile(node.resource, httpReq, httpRes, { download:1, stats:node.stats, name:node.name });
         }
         
         assert(node.isFolder(), 'must be folder');
@@ -97,6 +97,6 @@ function serveFromVFS(httpReq, httpRes) {
             return httpRes.end();
         }
         
-        serving.serveFile('static/frontend/index.html', httpRes)
+        serving.serveFile('static/frontend/index.html', httpReq, httpRes)
     });
 } // serveFromVFS
