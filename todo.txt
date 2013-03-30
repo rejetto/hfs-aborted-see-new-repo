@@ -4,10 +4,9 @@ improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
 
 === NEXT
-resume
 
 === AFTER
-while loading a folder, show an animation (both front-end and back-end)
+resume
 ? comply with standard callback(err,data)
 ? folder multi-bind
     ? if 2 binds have 2 subfolders with same name, should merge them too? 

@@ -221,7 +221,8 @@ function itemClickHandler() {
         }
                 
         location.hash = (h.startsWith(location.pathname)) ? h.substr(location.pathname.length) : h;
-        loadFolder(h);
+        var loader = $("<img src='/~/pics/loader.gif'>").css(x.find('.item-icon').offset()._expand({position:'absolute'})).appendTo('body');
+        loadFolder(h, function(){ loader.remove() });
         return false;
     }
     if (!x.attr('target')) {
@@ -257,7 +258,8 @@ function updateMode(v){
             var d = $('#items');
             var x = d.children(':first').width();
             if (!x) return; // no items
-            var n = Math.floor(d.width() / x)-1; // -1 because we leave some space for the properties
+            var n = Math.floor(d.width() / x);
+            if ($.browser.hovering) n--; // we leave some space for popup properties
             var should = d.children(':nth-child({0}n+1):not(:first)'.x(n));
             if (should[0] === d.children('.forced-br:first')[0]) return; // nothing changed
             d.children('.forced-br').removeClass('forced-br'); // clean
@@ -294,7 +296,7 @@ function updateOrder(v) {
 
 function sortItems() {
     if (!currentOrder || !listFromServer) return; // no job
-    
+
     listFromServer.items.sort(function cb(a,b,field){
         field = field || currentOrder;
         if (field != 'type' && foldersBefore) { // if field is 'type', then the folders are always put at the top
@@ -305,14 +307,13 @@ function sortItems() {
         var vb = b[field];
         switch (field) {
             case 'label':
-                va=va.low(), vb=vb.low(); 
+                va=va.low(), vb=vb.low();
                 break;
             case 'type':
                 if (va == 'folder') va=''; // trick to get folders at the top
                 if (vb == 'folder') vb='';
-                break;  
+                break;
         }
         return cmp(va,vb) || (field=='label' ? 0 : cb(a,b,'label'));
     });
 } // sortItems
-

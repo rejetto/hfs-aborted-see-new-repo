@@ -23,9 +23,12 @@ a img { border:0; } /* conform IE */
 [mode=list] li { border-bottom:1px solid #eee; height:1.5em; }
 [mode=list] li:nth-of-type(odd) { background:#fafafa; } /* stripes */
 [mode=list] .item-link { clear:left; float:left; text-decoration:none;
-    width:20em; height:1.5em; overflow:hidden; margin-right:1em;  
+    width:80%; max-width:30em; height:1.5em; overflow:hidden;
+    margin-right:1em; /* leave some space to breathe */
+    white-space:nowrap; /* show as much as you can, even half-words, otherwise it will wrap under */
 }
+[mode=list] .full-label { white-space:normal; } /* re-enable wrapping */
 [mode=list] .item-link img { height:1.5em; vertical-align:middle; float:left; } 
-[mode=list] .item-label { margin-left:0.5em; margin-right:1em; white-space:nowrap; }
+[mode=list] .item-label { margin-left:0.5em; margin-right:1em; }
 [mode=list] .item-type { display:none; } 
-[mode=list] .item-size { display:inline; }
+[mode=list] .item-size { display:inline; min-width:7em; }
