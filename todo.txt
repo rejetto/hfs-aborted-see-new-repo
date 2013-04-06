@@ -6,7 +6,6 @@ improve in-source documentation
 === NEXT
 
 === AFTER
-resume
 ? comply with standard callback(err,data)
 ? folder multi-bind
     ? if 2 binds have 2 subfolders with same name, should merge them too? 
