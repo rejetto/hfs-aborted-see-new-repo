@@ -23,7 +23,7 @@ var srv = http.createServer(function(httpReq,httpRes){
     if (!serving.parseUrl(httpReq)) return;        
 
     var peer = httpReq.socket.address();
-    dbg('serving '+peer.address+':'+peer.port+' '+httpReq.url);
+    dbg('requested '+peer.address+':'+peer.port+' '+httpReq.url+su(' ',httpReq.headers.range));
 
     serving.serveStatic(httpReq, httpRes)
         || serveFromVFS(httpReq, httpRes);
@@ -77,15 +77,19 @@ function getReplyForFolder(folder, cb) {
     });//dir
 } // getReplyForFolder
 
-function serveFromVFS(httpReq, httpRes) {
+function serveFromVFS(httpReq, httpRes, cb) {
     vfs.fromUrl(httpReq.uri, function urlCB(node){
         if (!node) {
             httpRes.writeHead(404);
-            return httpRes.end();
+            httpRes.end();
+            call(cb, false);
+            return;
         }
 
         if (node.isFile()) {
-            return serving.serveFile(node.resource, httpReq, httpRes, { download:1, stats:node.stats, name:node.name });
+            serving.serveFile(node.resource, httpReq, httpRes, { download:1, stats:node.stats, name:node.name });
+            cb(node);
+            return
         }
         
         assert(node.isFolder(), 'must be folder');
@@ -94,9 +98,12 @@ function serveFromVFS(httpReq, httpRes) {
             httpRes.writeHead(301, {
                 'Location': httpReq.url+'/'
             });
-            return httpRes.end();
+            httpRes.end();
+            call(cb, false);
+            return
         }
         
-        serving.serveFile('static/frontend/index.html', httpReq, httpRes)
+        serving.serveFile('static/frontend/index.html', httpReq, httpRes);
+        call(cb, 1);
     });
 } // serveFromVFS

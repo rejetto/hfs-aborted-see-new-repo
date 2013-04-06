@@ -69,3 +69,6 @@ exports.lmbd = exports.L = function(f) {
     f = f.replace(/\$\d\b/g, function(v) { return 'arguments['+(v.substr(1)-1)+']' }); // translate parameters in the ordinal form: "$1" is first parameter, "$2" etc
     return eval('(function('+pars+'){ '+localVars+' return '+f+' })');
 }// lmbd
+
+// surround $b with $a and $c, but only if $b is true
+exports.su = function(a,b,c) { return b ? a+b+(c||'') : '' }

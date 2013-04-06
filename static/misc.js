@@ -141,7 +141,7 @@ function formatBytes(n) {
     return round(n,1)+c;
 } // formatBytes
 
-round = function(v, decimals) {
+function round(v, decimals) {
     decimals = Math.pow(10, decimals||0);
     return Math.round(v*decimals)/decimals;
 } // round
