@@ -14,9 +14,20 @@
 <body>
 <h2>Folder <span id='folder'></span></h2>
 <div id='folder-info'></div>
-View mode <select id='mode'><option>tiles<option>list</select>
-<p>Order <select id='order'><option value=''>none<option value='label' selected>name<option>type<option>size</select>
-<p>Pagination <select id='pagination'><option value=''>none<option>50<option>100<option selected>200<option>500</select>
+<div id='view-settings'>
+    <div>
+        <label>View mode</label>
+        <select id='mode'><option>tiles<option>list</select>
+    </div>
+    <div>
+        <label>Order</label>
+        <select id='order'><option value=''>none<option value='label' selected>name<option>type<option>size</select>
+    </div>
+    <div>
+        <label>Pagination</label>
+        <select id='pagination'><option value=''>none<option>50<option>100<option selected>200<option>500</select>
+    </div>
+</div>
 <ul id='items'></ul>
 </body>
 </html>

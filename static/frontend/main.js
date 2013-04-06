@@ -69,12 +69,12 @@ $(function onJQ(){ // dom ready
     });
 
     // item hovering
-    $('.item-link').live({
+    $('#items').on({
         mouseenter: function(){
             if (!$(this).isOverflowed()) return; // fine!
             // our label is clipped
             var lbl = $(this).find('.item-label');
-            // make some changes so it's hopefully fully visible
+            // make some changes so it's hopefully fully visible. We actually just mark it, leaving the real work to your css rules.
             lbl.addClass('full-label');
             // if no bg was assigned, the enlarged label may overlap other elements, and its transparency may cause very bad readability
             if (isTransparent(lbl.css('background-color'))) {
@@ -91,7 +91,7 @@ $(function onJQ(){ // dom ready
                 lbl.removeData('remove bg',null);
             }
         }
-    });//live
+    }, '.item-link');
 
 });//dom ready
 
@@ -103,7 +103,7 @@ function loadFolder(path /** optional */, cb /** optional */) {
         if (showError(reply)) return;
         listFromServer = reply; // hold it in a global variable, to not loose it
         convertList(reply);
-        $('#folder-info').html("number of items: "+reply.items.length);
+        $('#folder-info').html("Items: "+reply.items.length);
         sortItems();                
         redrawItems();
         if (typeof cb == 'function') {
@@ -247,7 +247,7 @@ function updateMode(v){
 
     currentMode = v; // global 
     updateSettingsCookie({ mode: v }); // remember 
-    $('body').attr('mode', v);
+    $('html').attr('mode', v);
 
     /* float mode used by 'tiles' is CPU expensive when we get many items (500+ on a core2duo@2.1).
      * To ease this task we periodically set fixed line breaks.
@@ -259,7 +259,7 @@ function updateMode(v){
             var x = d.children(':first').width();
             if (!x) return; // no items
             var n = Math.floor(d.width() / x);
-            if ($.browser.hovering) n--; // we leave some space for popup properties
+            if ($.support.hover) n--; // we leave some space for popup properties
             var should = d.children(':nth-child({0}n+1):not(:first)'.x(n));
             if (should[0] === d.children('.forced-br:first')[0]) return; // nothing changed
             d.children('.forced-br').removeClass('forced-br'); // clean
