@@ -28,7 +28,7 @@ jQuery.fn.isOverflowed = function(HorV) {
 /** ensure the element is verticaly visible */ 
 jQuery.fn.scrollToMe = function(options){
     var go = this.offScreen();
-    if (go !== fales) {
+    if (go !== false) {
         $('html,body').stop(true).animate({ scrollTop: go }, options);
     }
     return this;
