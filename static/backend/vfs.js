@@ -189,7 +189,7 @@ $(function(){
     $('#vfs').click(function(){
         vfsSelect(null); // deselect
     });
-    $('#vfs li').live({
+    $('#vfs').on({
         click: function(ev){
             ev.stopImmediatePropagation();
             removeBrowserSelection();
@@ -213,8 +213,8 @@ $(function(){
             ev.stopImmediatePropagation();
             $(this).removeClass('hovered');
         }
-    });
-    $('#vfs .expansion-button').live({
+    }, 'li');
+    $('#vfs').on({
         click: function(ev){
             ev.stopImmediatePropagation();
             removeBrowserSelection();
@@ -228,7 +228,7 @@ $(function(){
         mouseout: function(ev){
             $(this).removeClass('hovered');
         }
-    });
+    }, '.expansion-button');
     $('#vfs').hover(showExpansionButtons, hideExpansionButtons);
     $('#bindItem').click(bindItem);
     $('#addItem').click(addItem);
