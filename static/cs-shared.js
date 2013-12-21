@@ -53,22 +53,12 @@ exports.call = function(fun) {
 exports.choose = function(index, object, defVal) {
     return (index in object) ? object[index] : defVal;
 }
-
-/**
- * Build a function made by an expression.
- * First parameter can be accessed directly as "$1" (and so on), or with single capital letters (that will be passed in alphabetical order, not by appearance).
- * Local variables are in the form "$A" (single capital letter). Local vars are useful with the comma operator.
- */
-exports.lmbd = exports.L = function(f) {
-    if ((typeof f)._among('undefined','function')) return f; // already a function
-    if (typeof f != 'string') return function(){ return f }; // anything that's not a string is returned as is
-    var pars = f.match(/(^|\b)([A-Z])($|\b)/g); // gather parameters in the form of single capital letter. Order is determined by alphabetical order, not appearance in the body.
-    pars = pars ? pars.unique().join(',') : ''; // this is also sorting
-    var localVars = f.match(/(\$[A-Z])($|\b)/g); // gather local variables in the form of a $ followed by single capital letter.
-    localVars = localVars ? 'var '+localVars.unique().join(',')+';' : '';
-    f = f.replace(/\$\d\b/g, function(v) { return 'arguments['+(v.substr(1)-1)+']' }); // translate parameters in the ordinal form: "$1" is first parameter, "$2" etc
-    return eval('(function('+pars+'){ '+localVars+' return '+f+' })');
-}// lmbd
-
 // surround $b with $a and $c, but only if $b is true
 exports.su = function(a,b,c) { return b ? a+b+(c||'') : '' }
+
+exports.idFun = function(a) { return a }
+
+exports.assert = function(condition, message) {
+    if (!condition) throw 'ASSERT failed'+ (message ? ': '+message : '');
+} // assert
+
