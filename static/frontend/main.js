@@ -114,7 +114,15 @@ $(function onJQ(){ // dom ready
 // ask the server for the items list of the specified folder, then sort and display
 function loadFolder(path /** optional */, cb /** optional */) {
     if (path) currentFolder = path;
-    $('#folder').text(decodeURI(currentFolder));
+    // breadcrumbs
+    $('#folder').html(
+        '<a href="/#"><img src="/~/pics/home.png" style="height:1em;"/></a>'+
+        // build pairs text/link
+        decodeURI(currentFolder).split('/').filter('A').map('["/"+A, "/#"+C.slice(0,B+1).join("/")+"/"]')
+        // then to html
+            .map('$("<a>").text(A[0]).attr({href:A[1]})[0].outerHTML').join('')
+    );
+
     socket.emit('get list', { path:currentFolder }, function onGetList(reply){
         if (showError(reply)) return;
         listFromServer = reply; // hold it in a global variable, to not loose it
@@ -235,7 +243,7 @@ function itemClickHandler() {
             location = '/#'+h.substr(1);
             return false;
         }
-                
+
         location.hash = (h.startsWith(location.pathname)) ? h.substr(location.pathname.length) : h;
         var loader = $("<img src='/~/pics/loader.gif'>").css(x.find('.item-icon').offset()._expand({position:'absolute'})).appendTo('body');
         loadFolder(h, function(){ loader.remove() });
