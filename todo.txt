@@ -4,6 +4,7 @@ improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
 
 === NEXT
+save vfs to file (yml)
 
 === AFTER
 ? comply with standard callback(err,data)
@@ -15,11 +16,6 @@ zip stream
 handle non-working IO connection for both frontend and backend
 ? coffee-script
 what wiki to use for development, github or rejetto.com?
-modules that could be useful
-    for better performance on socket.io exchanges https://github.com/pgriess/node-msgpack
-    mime https://github.com/bentomas/node-mime
-    most used reloader https://github.com/remy/nodemon
-    browse the whole list at https://github.com/joyent/node/wiki/modules
 
 === SHOULD I SWITCH TO PYTHON 3?
 now tornado supports python3. Reconsider.
@@ -28,3 +24,9 @@ now tornado supports python3. Reconsider.
     - more libraries (sure? libs need to be async, don't they? so, they may even be fewer)
     CONS
     - have to port the whole server part
+
+=== INTERESTING MODULES
+for better performance on socket.io exchanges https://github.com/pgriess/node-msgpack
+mime https://github.com/bentomas/node-mime
+most used reloader https://github.com/remy/nodemon
+browse the whole list at https://github.com/joyent/node/wiki/modules

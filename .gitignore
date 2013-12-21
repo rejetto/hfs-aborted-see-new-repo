@@ -16,6 +16,7 @@ pids
 logs
 results
 .idea
+projectFilesBackup
 
 node_modules
 npm-debug.log

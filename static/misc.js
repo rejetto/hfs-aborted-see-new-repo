@@ -226,6 +226,12 @@ function once(scope) {
     return once.flags[scope] = 1;
 } // once
 
+// a performance index. Smaller is faster. E.g. ~50 for a Core2duo@2.1ghz 
+function benchmark() {
+    t = new Date(); 
+    for (var i=100000; i--;) t[i] = i; 
+    return (new Date())-t;
+} // benchmark
 
 /* CURRENTLY UNUSED
 

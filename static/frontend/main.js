@@ -29,6 +29,22 @@ function getURLfolder() {
 } // getURLfolder
 
 $(function onJQ(){ // dom ready
+    
+    (function speedSetup() {
+
+        function chooseSpeed(q, map, def){
+            for (var k in map) {
+                if (q <= k) return map[k];
+            }
+            return def;
+        } // chooseSpeed
+        
+        $('#pagination').val( chooseSpeed(benchmark(), {
+            5: 500,
+            50: 200
+        }, 50) );
+    })();
+
     socket = io.connect(window.location.origin);
     
     socket.on('connect', function onIO(){ // socket ready
@@ -103,7 +119,7 @@ function loadFolder(path /** optional */, cb /** optional */) {
         if (showError(reply)) return;
         listFromServer = reply; // hold it in a global variable, to not loose it
         convertList(reply);
-        $('#folder-info').html("Items: "+reply.items.length);
+        $('#folder-info').html("Items: <span id='num-items'>{0}</span>".x(reply.items.length));
         sortItems();                
         redrawItems();
         if (typeof cb == 'function') {
@@ -289,7 +305,7 @@ function updateOrder(v) {
     currentOrder = v; // global
     updateSettingsCookie({ order: v }); // remember
     if (v) {
-        $('#order option[value=]').remove(); // after we have sorted the items there's no way to return to the original order, so let's hide this option
+        $('#order option[value=""]').remove(); // after we have sorted the items there's no way to return to the original order, so let's hide this option
     }
     sortItems();
 } // updateOrder

@@ -14,6 +14,8 @@ h2 { margin-bottom:0.3em; }
     line-height: 2em;
 }
 
+#num-items { min-width:3em; display: inline-block; font-weight:bold; }
+
 .full-label { position:absolute; padding-right:1em; text-align:left; }
 
 /*  tiles */
