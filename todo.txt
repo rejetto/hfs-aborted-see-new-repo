@@ -5,6 +5,7 @@ improve in-source documentation
 
 === NEXT
 save vfs to file (yml)
+BUG: a file with name " " cannot be downloaded
 
 === AFTER
 ? comply with standard callback(err,data)

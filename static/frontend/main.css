@@ -38,7 +38,7 @@ h2 { margin-bottom:0.3em; }
 
 /*  list */ 
 [mode=list] li { border-bottom:1px solid #eee; height:1.5em; }
-[mode=list] li:nth-of-type(odd) { background:#fafafa; } /* stripes */
+[mode=list] li:nth-of-type(odd) { background:#eee; } /* stripes */
 [mode=list] .item-link { clear:left; float:left; text-decoration:none;
     width:80%; max-width:30em; height:1.5em; overflow:hidden;
     margin-right:1em; /* leave some space to breathe */

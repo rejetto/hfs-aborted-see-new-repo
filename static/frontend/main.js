@@ -87,8 +87,7 @@ $(function onJQ(){ // dom ready
     // item hovering
     $('#items').on({
         mouseenter: function(){
-            if (!$(this).isOverflowed()) return; // fine!
-            // our label is clipped
+            if (!$(this).isOverflowed()) return; // is our label clipped?
             var lbl = $(this).find('.item-label');
             // make some changes so it's hopefully fully visible. We actually just mark it, leaving the real work to your css rules.
             lbl.addClass('full-label');
@@ -202,15 +201,16 @@ function redrawItems() {
     $('#paginator').remove();
     if (overflow) { // draw a paginator
         var d = $("<div id='paginator'>").insertBefore('#items');
-        d.append("Pages <button page='0'>1</button>");
-        for (var i=1; i<pages-1; i++) {
-            d.append("<button page='{0}'>{1}</button>".x(i, i+1));
+        d.append("Pages ");
+        for (var i=0; i<pages; i++) {
+            $("<button>").text(i+1)
+                .attr({page:i, disabled:i===currentPage}) // highlight current page (by disabling the button)
+                .appendTo(d)
+                .click(function(){
+                    currentPage = +$(this).attr('page');
+                    redrawItems();
+                })
         }
-        d.append("<button page='{0}'>{1}</button>".x(pages-1, pages));
-        $('#paginator button[page]').click(function(){
-            currentPage = +$(this).attr('page');
-            redrawItems();
-        }).attr('disabled',false).filter('[page={0}]'.x(currentPage)).attr('disabled',true); // highlight current page (by disabling the button)
     }
 
     for (var a=listFromServer.items, i=0; i<max; ++i) {
