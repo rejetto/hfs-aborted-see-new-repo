@@ -187,20 +187,23 @@ Array.extend('remove', function(from, to) {
 }); // Array.remove
 
 // remove any occurrence of the specified parameter. If an array is supplied, its single values are considered.
-Array.extend('removeItems', function(it) {
+Array.extend('removeItems', function(it, returnRemoved) {
     var i = this.length; // cursor
     var n = 0; // counter of items to delete at cursor position
+    var removed = [];
     while (i--) {
         if (it instanceof Function ? it.call(this, this[i], i) : (this[i] === it || it instanceof Array && it.contains(this[i]))) {
             n++;
         }
         else if (n) {
-            this.splice(i+1,n);
+            var a = this.splice(i+1,n);
+            if (returnRemoved) removed.append(a);
             n = 0;
         }
     }
-    n && this.splice(i+1,n);
-    return this;
+    a = n && this.splice(i+1,n);
+    if (a && returnRemoved) removed.append(a);
+    return returnRemoved ? removed : this;
 }); // Array.removeItems
 
 // keeps only elements that appears in the $otherArray

@@ -58,7 +58,7 @@ function getReplyForFolder(folder, cb) {
     if (!folder) {
         return cb({error:'not found'});
     }
-    folder.dir(function(items){
+    folder.dir(function(items, bads){
         assert(items, 'items');                
         // convert items to a simpler format
         items.remap(function(f){
@@ -73,7 +73,7 @@ function getReplyForFolder(folder, cb) {
             return it;
         });
 
-        cb({items:items});    
+        cb({items:items, bads:bads});
     });//dir
 } // getReplyForFolder
 
