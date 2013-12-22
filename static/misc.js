@@ -18,8 +18,8 @@ jQuery.fn.isOverflowed = function(HorV) {
     var res = false;
     if (HorV) HorV = HorV[0].toUpperCase(); // so it accepts even 'horizontally'
 	this.each(function(){
-	    var v = this.clientHeight < this.scrollHeight;
-        var h = this.clientWidth < this.scrollWidth;       
+	    var v = this.clientHeight < this.scrollHeight-1;
+        var h = this.clientWidth < this.scrollWidth-1;
         return res = (!HorV ? h||v : (HorV == 'H' ? h : v));
     });
     return res;
