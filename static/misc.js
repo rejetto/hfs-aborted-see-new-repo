@@ -183,7 +183,7 @@ function animate(object, property, endValue, options) {
         h: setInterval(step, 1000/freq)
     });
     function step(){
-        --steps ? (object[property] = current+=inc) : end()
+        --steps>0 ? (object[property] = current+=inc) : end()
     }
 
 } // animate
