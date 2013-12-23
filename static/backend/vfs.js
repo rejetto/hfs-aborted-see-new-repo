@@ -1,3 +1,7 @@
+/**
+ * @author Massimo Melina <a@rejetto.com>
+ */
+
 LOTS_OF_FILE_IN_FOLDER = 1000;
 
 tpl.item = "<li>"
@@ -191,42 +195,20 @@ $(function(){
     });
     $('#vfs').on({
         click: function(ev){
-            ev.stopImmediatePropagation();
-            removeBrowserSelection();
             vfsSelect(this);
+            return false;
         },
         dblclick: function(ev){
-            ev.stopImmediatePropagation();
-            removeBrowserSelection();
             var it = getFirstSelected();
             if (isFolder(it)) {
                 toggleExpanded(it);
             }
-        },
-        mouseover: function(ev){
-            ev.stopImmediatePropagation();
-            $('#vfs li.hovered').removeClass('hovered');
-            $(this).addClass('hovered');
-            $('#vfs .expansion-button').fadeIn();
-        },
-        mouseout: function(ev){
-            ev.stopImmediatePropagation();
-            $(this).removeClass('hovered');
+            return false;
         }
     }, 'li');
     $('#vfs').on({
         click: function(ev){
-            ev.stopImmediatePropagation();
-            removeBrowserSelection();
-            var li = $(ev.target).closest('li');
-            toggleExpanded(li);
-        },
-        mouseover: function(ev){
-            $('#vfs .expansion-button.hovered').removeClass('hovered');
-            $(this).addClass('hovered');
-        },
-        mouseout: function(ev){
-            $(this).removeClass('hovered');
+            toggleExpanded($(this).closest('li'));
         }
     }, '.expansion-button');
     $('#vfs').hover(showExpansionButtons, hideExpansionButtons);

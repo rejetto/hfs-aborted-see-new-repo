@@ -154,43 +154,38 @@ function getIconURI(icon) { return "/~/pics/files/"+icon+".png"; }
 
 function animate(object, property, endValue, options) {
     options = options||{};
-    var freq = options.freq||30; // Hz
+    var freq = options.freq||15; // Hz
     var duration = options.duration||0.5; // seconds
     var steps = freq*duration; // number of steps to the end
     if (!object || !property || !steps) return;
     var trackingKey = 'animation_running_'+property;
     var endParameter = { canceling:1 }; // at this stage, calling end() will inform the callback that we have been canceled by another animation 
     
-    var end = function(){        
-        object[property] = endValue;
-        clearInterval(object[trackingKey]);
+    function end(){
+        object[property] = object[trackingKey].endValue;
+        clearInterval(object[trackingKey].h);
         delete object[trackingKey];
-        if (typeof options.onEnd == 'function') {
-            options.onEnd(endParameter);
-        }
-    };
+        call(options.onEnd, endParameter);
+    }
     
     if (object[trackingKey]) {
-        end(); // terminate previous        
+        if (object[trackingKey].endValue === endValue) return; // don't do it twice
+        end(); // terminate previous
     }    
     // we passed the stage of the cancellation
     delete endParameter.canceling;
-    if (Object.keys(endParameter).length === 0) {
-        endParameter = undefined;
+
+    var from = current = Number(object[property]);
+    var inc = (endValue-from)/steps;
+    // start animation, and keep track inside the object itself
+    object._setHidden(trackingKey, {
+        endValue: endValue,
+        h: setInterval(step, 1000/freq)
+    });
+    function step(){
+        --steps ? (object[property] = current+=inc) : end()
     }
-    
-    var from;
-    var current;
-    var inc;
-    // track this operation. It would be nice to do it without touching, but we'd need an hash/id of the object, and i don't know a way to get it.            
-    object[trackingKey] = setInterval(function(){
-        if (typeof from === 'undefined') { // initialize
-            from = current = Number(object[property]);
-            inc = (endValue-from)/steps;
-        }
-        object[property] = current += inc;
-        if (! --steps) end();
-    }, 1000/freq);
+
 } // animate
 
 function removeBrowserSelection() {
