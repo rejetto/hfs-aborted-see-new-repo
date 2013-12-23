@@ -43,7 +43,7 @@ srv.on('error', function(err){
         an async fashion and you need to specify a callback to retrieve the result.    
 */
 function nodeToObject(fnode, depth, cb) {
-    assert(!cb || typeof cb == 'function', 'cb');
+    assert(!cb || typeof cb == 'function', 'cb'); // this is necessarily an async procedure: require a callback
     if (!fnode) {
         if (cb) cb(false);
         return false;
@@ -68,17 +68,15 @@ function nodeToObject(fnode, depth, cb) {
         if (cb) cb(res);
         return res;    
     }
-    // this is necessarily an async procedure: require a callback
-    assert(cb, 'cb');
     // recur on children
-    fnode.dir(function(items){
+    fnode.dir(function(items,bads){
         res.children = [];
         async.forEach(items, function(e, doneThis){
             nodeToObject(e, depth-1, function(obj){
                 res.children.push(obj);
                 doneThis();
             });                    
-        }, cb.bind(this,res));
+        }, cb.bind(this,res,bads));
     });
 } // nodeToObject
 
