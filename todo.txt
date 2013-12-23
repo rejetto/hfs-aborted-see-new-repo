@@ -5,7 +5,8 @@ improve in-source documentation
 
 === NEXT
 save vfs to file (yml)
-BUG: a file with name " " cannot be downloaded
+BUG: frontend: a file with name " " cannot be downloaded
+BUG: backend: rename a temp file, reload the folder, it won't hide the original one (showing twice)
 
 === AFTER
 ? comply with standard callback(err,data)

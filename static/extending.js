@@ -1,3 +1,6 @@
+/**
+ * @author Massimo Melina <a@rejetto.com>
+ */
 if (typeof GLOBAL === 'undefined') GLOBAL=window;
 
 GLOBAL.L = lmbd;

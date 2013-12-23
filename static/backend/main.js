@@ -1,3 +1,7 @@
+/**
+ * @author Massimo Melina <a@rejetto.com>
+ */
+
 function loadJS(libs) {
     libs = libs.split('|');
     for (var i=libs.length; i--;) {
