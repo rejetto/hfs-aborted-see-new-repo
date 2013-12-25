@@ -26,7 +26,7 @@ var srv = http.createServer(function(httpReq,httpRes){
         serving.serveFile('static/backend/index.html', httpReq, httpRes);
         return;
     }
-    serve404(httpRes); // we serve nothing else
+    serving.serve(httpRes, 404); // we serve nothing else
 });
 
 srv.on('error', function(err){

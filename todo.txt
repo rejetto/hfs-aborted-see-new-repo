@@ -6,8 +6,7 @@ improve in-source documentation
 === NEXT
 save vfs to file (yml)
 BUG: frontend: a file with name " " cannot be downloaded
-BUG: backend: rename a temp file, reload the folder, it won't hide the original one (showing twice)
-BUG: crash requesting /~/
+backend: overlapped node are not displayed (fixed's and mod's overlapping temp's)
 
 === AFTER
 ? comply with standard callback(err,data)

@@ -48,3 +48,5 @@ exports.assert = function(condition, message) {
     if (!condition) throw 'ASSERT failed'+ (message ? ': '+message : '');
 } // assert
 
+exports.getPicURI = function(file) { return "/~/pics/"+file+".png"; }
+

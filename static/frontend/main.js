@@ -119,7 +119,7 @@ function loadFolder(path /** optional */, cb /** optional */) {
     if (path) currentFolder = path;
     // breadcrumbs
     $('#folder').html(
-        '<a href="/#"><img src="/~/pics/home.png" style="height:1em;"/></a>'+
+        '<a href="/#"><img src="'+getPicURI('home')+'" style="height:1em;"/></a>'+
         // build pairs text/link
         decodeURI(currentFolder).split('/').filter('A').map('["/"+A, "/#"+C.slice(0,B+1).join("/")+"/"]')
         // then to html

@@ -148,9 +148,7 @@ function round(v, decimals) {
 
 function cmp(a,b) { return a>b ? 1 : a<b ? -1 : 0 }
 
-function getPicURI(file) { return "/~/pics/"+file+".png"; }
-
-function getIconURI(icon) { return "/~/pics/files/"+icon+".png"; }
+function getIconURI(icon) { return getPicURI("files/"+icon) }
 
 function animate(object, property, endValue, options) {
     options = options||{};
