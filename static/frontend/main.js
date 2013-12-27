@@ -3,13 +3,13 @@
  */
 
 function loadJS(libs) {
-    libs = libs.split('|');
+    libs = libs.split(',');
     for (var i=libs.length; i--;) {
         document.write("<script src='/~/"+libs[i]+".js'></script>");
     } 
 }
 
-loadJS('extending|cs-shared|misc');
+loadJS('extending,cs-shared,misc');
 
 
 var socket, currentFolder, listFromServer, foldersBefore=1, currentPage=0;

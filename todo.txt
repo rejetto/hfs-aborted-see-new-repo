@@ -1,11 +1,9 @@
 === DOING
-debugging console via telnet (still working very bad)
 improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
 
 === NEXT
 save vfs to file (yml)
-BUG: frontend: a file with name " " cannot be downloaded
 backend: overlapped node are not displayed (fixed's and mod's overlapping temp's)
 
 === AFTER

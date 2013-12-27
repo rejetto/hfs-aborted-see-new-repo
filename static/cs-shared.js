@@ -21,18 +21,17 @@ exports.tryGet = function(obj, property, def) {
     catch(e) { return def }
 } // tryGet
 
-
-
 // calls 'fun' if it's a function.
 exports.call = function(fun) {
     var a = Array.prototype.slice.call(arguments, 1);
     var This = this;
-    if (typeof fun == 'object' && typeof a[0] == 'function') {
+    if (fun instanceof Object && a[0] instanceof Function) {
         This = fun;
         fun = a.shift();
     }
-    if (typeof fun != 'function') return;
-    fun.apply(This, a);
+    if (fun instanceof Function) {
+        fun.apply(This, a);
+    }
 } // call
 
 // just accessing an object by index. It's merely for improving readability, by moving the index in front of a map of choices.

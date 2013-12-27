@@ -15,15 +15,13 @@ exports.start = function(listenOn) {
     });
 };
 
-/*
-   SET UP THE HTTP SERVER
-*/
+// Set up the HTTP server
 
 var srv = http.createServer(function(httpReq,httpRes){
     if (!serving.parseUrl(httpReq)) return;        
 
     var peer = httpReq.socket.address();
-    dbg('requested '+peer.address+':'+peer.port+' '+httpReq.url+su(' ',httpReq.headers.range));
+    dbg('Req '+peer.address+':'+peer.port+' '+httpReq.url+su(' ',httpReq.headers.range));
 
     serving.serveStatic(httpReq, httpRes)
         || serveFromVFS(httpReq, httpRes);
