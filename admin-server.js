@@ -96,7 +96,7 @@ io.sockets.on('connection', function(socket){
             : null)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
-            nodeToObject(fnode, data.depth, cb);
+            nodeToObject(fnode, Math.min(2,data.depth), cb);
         });
     });
 
