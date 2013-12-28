@@ -63,6 +63,16 @@ Function.extend('bind', function(){
     };
 }); // Function.bind
 
+// as Function.bind, but doesn't require a scope (for when you don't care)
+Function.extend('bind_', function(){
+    var args = arguments._toArray();
+    var fun = this;
+    return function(){
+        fun.apply(GLOBAL, args.concat(arguments._toArray()));
+    };
+}); // Function.bind
+
+
 /** as function.bind(), but additional parameters are prepended instead of appended 
  * @return {function} proxied function
  */ 

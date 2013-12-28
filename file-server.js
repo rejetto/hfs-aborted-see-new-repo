@@ -45,35 +45,31 @@ io.sockets.on('connection', function(socket){
     //** sequences like these may be better with Step(). Try 
     socket.on('get list', function onGetList(data, cb){
         vfs.fromUrl(data.path, function(fnode) {
-            getReplyForFolder(fnode, serving.ioOk.bind(this,cb));  
+            if (serving.ioError(cb, !fnode ? 'not found'
+                : !fnode.isFolder() ? 'not a folder'
+                : false)) return;
+            fnode.dir(function(items, bads){
+                assert(items, 'items');
+                // convert items to a simpler format
+                items.remap(function(f){
+                    // we'll use short key names to save bandwidth on common fieldnames.
+                    var it = {
+                        n: f.name,
+                        t: f.itemKind.replace('virtual ','') // this is a quick and dirty method to get value as file|folder|link
+                    };
+                    // size
+                    if (f.isOnDisk() && !f.isFolder())
+                        it.s = f.stats.size;
+                    return it;
+                });
+
+                serving.ioOk(cb, {items:items, bads:bads});
+            });//dir
         });
     });
 });
 
 //////////////////////////////
-
-function getReplyForFolder(folder, cb) {
-    if (!folder) {
-        return cb({error:'not found'});
-    }
-    folder.dir(function(items, bads){
-        assert(items, 'items');                
-        // convert items to a simpler format
-        items.remap(function(f){
-            // we'll use short key names to save bandwidth on common fieldnames.
-            var it = {
-                n: f.name,
-                t: f.itemKind.replace('virtual ','') // this is a quick and dirty method to get value as file|folder|link
-            };
-            // size
-            if (f.isOnDisk() && !f.isFolder())
-                it.s = f.stats.size;
-            return it;
-        });
-
-        cb({items:items, bads:bads});
-    });//dir
-} // getReplyForFolder
 
 function serveFromVFS(httpReq, httpRes, cb) {
     vfs.fromUrl(httpReq.uri, function urlCB(node){

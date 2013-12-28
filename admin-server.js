@@ -80,7 +80,7 @@ function nodeToObject(fnode, depth, cb, isRecurring) {
                 res.children.push(obj);
                 doneThis();
             }, true);
-        }, cb.bind(this,res,bads));
+        }, cb.bind_(res,bads));
     });
 } // nodeToObject
 
@@ -100,7 +100,7 @@ io.sockets.on('connection', function(socket){
             : null)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
-            nodeToObject(fnode, Math.min(2,data.depth), cb);
+            nodeToObject(fnode, Math.min(2,data.depth), serving.ioOk.bind_(cb));
         });
     });
 

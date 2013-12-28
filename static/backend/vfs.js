@@ -41,12 +41,20 @@ function sameFileName(a,b) {
     return serverInfo.caseSensitiveFileNames ? a === b : a.same(b);
 } // sameFileName
 
+function sendCommand(cmd, data, cb) {
+    socket.emit(cmd, ioData(data), function(result){
+        ioData(result);
+        log(cmd, result);
+        cb(result);
+    })
+} // sendCommand
+
 function bindItem() { 
     var it = getFirstSelectedFolder();
     if (!it) return;
     inputBox('Enter path', function(s){
-        if (!s) return;    
-        socket.emit('vfs.set', ioData({ uri:getURI(it), resource:s }), function(result){
+        if (!s) return;
+        sendCommand('vfs.set', { uri:getURI(it), resource:s }, function(result){
             result.ok
                 ? reloadVFS(it)
                 : msgBox(result.error);
@@ -60,7 +68,7 @@ function renameItem() {
     inputBox('Enter new name', it.name, function(s){
         s = $.trim(s);
         if (!s || s == it.name) return; // no change
-        socket.emit('vfs.set', ioData({ uri:getURI(it), name:s }), function(result){
+        sendCommand('vfs.set', { uri:getURI(it), name:s }, function(result){
             if (!result.ok) {
                 msgBox(result.error);
                 return;
@@ -92,8 +100,8 @@ function deleteItem() {
     li.attr('deleting',1).fadeTo(100, 0.5); // mark it visually and at DOM level  
     vfsSelectNearby(li); // renew selection
     // server, please do it
-    socket.emit('vfs.delete', ioData({ uri:getURI(it) }), function(result){
-        if (!log('vfs.delete',result).ok) { // something went wrong
+    sendCommand('vfs.delete', { uri:getURI(it) }, function(result){
+        if (!result.ok) { // something went wrong
             // ugh, forget it.... (unmark)
             it.deleting = false;
             li.removeAttr('deleting').fadeIn(100);
@@ -122,7 +130,7 @@ function restoreItem(it) {
     var li = $(it.element); 
     var folder = li.closest('li.item');
     vfsSelectNearby(li);
-    socket.emit('vfs.restore', ioData({ uri:getURI(folder), resource:it.name }), function(result){
+    sendCommand('vfs.restore', { uri:getURI(folder), resource:it.name }, function(result){
         if (!result.ok) return;
         // do the job locally: remove the element from the array
         removeFromDeletedItems(asItem(folder), it.name);
@@ -137,7 +145,7 @@ function restoreItem(it) {
 function restoreAllItems(li) {
     assert(li, 'li');
     li = li.closest('li.item');
-    socket.emit('vfs.restore', ioData({ uri:getURI(li), resource:'*' }), function(result){
+    sendCommand('vfs.restore', { uri:getURI(li), resource:'*' }, function(result){
         if (!result.ok) return;
         reloadVFS(li);
     });    
@@ -146,9 +154,9 @@ function restoreAllItems(li) {
 function addItem() {
     var it = getFirstSelectedFolder() || getRootItem();
     inputBox('Enter name or path', function(s){
-        if (!s) return;    
-        socket.emit('vfs.add', ioData({ uri:getURI(it), resource:s }), function(result){
-            if (!log('vfs.add',result).ok) {
+        if (!s) return;
+        sendCommand('vfs.add', { uri:getURI(it), resource:s }, function(result){
+            if (!result.ok) {
                 msgBox(result.error);
                 return;
             }
@@ -457,18 +465,25 @@ function enableButton(name, condition) {
     $('#'+name).attr({disabled: !condition});
 } // enableButton
 
+function treatFileData(item) {
+    if (!item.name) item.name = basename(item.resource);
+    if (!item.children) return;
+    item.children.forEach(treatFileData);
+} // treatFileData
+
 function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
     var loader = $(tpl.loader).appendTo( e.find('.label:first') );
-    socket.emit('vfs.get', ioData({ uri:item ? getURI(item) : '/', depth:1 }), function(data){
+    sendCommand('vfs.get', ioData({ uri:item ? getURI(item) : '/', depth:1 }), function(data){
         try {
-            if (!log('vfs.get',data)) return;
+            if (!data || !data.ok) return;
             var n = tryGet(data, 'children.length');
             if (n > LOTS_OF_FILE_IN_FOLDER
             && !confirm('This folder contains {0} items. It may slow down your computer. Continue?'.x(n))) {
                 setExpanded(e, false);
                 return;
             }
+            treatFileData(data);
             bindItemToDOM(data, e);
             setExpanded(e);
             var ul = e.find('ul:first');
@@ -624,9 +639,7 @@ function addItemUnder(under, item, position) {
         };
     }
 
-    if (!item.name) item.name = basename(item.resource);
-
-    // the UL element is the place for children, have one or create it  
+    // the UL element is the place for children, have one or create it
     var x = under.children('ul'); 
     under = x.length ? x : $('<ul>').appendTo(under);
     
