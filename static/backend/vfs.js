@@ -624,6 +624,8 @@ function addItemUnder(under, item, position) {
         };
     }
 
+    if (!item.name) item.name = basename(item.resource);
+
     // the UL element is the place for children, have one or create it  
     var x = under.children('ul'); 
     under = x.length ? x : $('<ul>').appendTo(under);
@@ -642,7 +644,7 @@ function addItemUnder(under, item, position) {
     }
     if (position === 'sorted') {
         // skip elements until we find one that has a "higher" name (case-insensitively)
-        var name = item.name.low(); 
+        var name = item.name.low();
         while (beforeThis.length
             && beforeThis.hasClass('item')
             && beforeThis.find('.label').text().low() < name) {

@@ -42,7 +42,7 @@ srv.on('error', function(err){
     @return the object representing the FileNode if no depth is specified. Otherwise the returning turns into
         an async fashion and you need to specify a callback to retrieve the result.    
 */
-function nodeToObject(fnode, depth, cb) {
+function nodeToObject(fnode, depth, cb, isRecurring) {
     assert(!cb || typeof cb == 'function', 'cb'); // this is necessarily an async procedure: require a callback
     if (!fnode) {
         if (cb) cb(false);
@@ -52,12 +52,16 @@ function nodeToObject(fnode, depth, cb) {
 
     var res = ceLib.extenduptolevel({name:fnode.name}, fnode, 1); // make a copy of the whole object without recurring, and overwriting the getter 'name'
     delete res._parent;  // this makes a circular reference
-    delete res.children; // in case we want the true listing, not just the children  
+    delete res.children; // in case we want the true listing, not just the children
+    if (!res.customName) delete res.name;
     delete res.customName;
     // save bandwidth by not sending some empty properties
     if (res.deletedItems
     && !res.deletedItems.length) {
         delete res.deletedItems; 
+    }
+    if (isRecurring && res.resource) {
+        res.resource = fnode.resourceRelativeTo(fnode.parent);
     }
     if (!res.resource) {
         delete res.resource;
@@ -75,7 +79,7 @@ function nodeToObject(fnode, depth, cb) {
             nodeToObject(e, depth-1, function(obj){
                 res.children.push(obj);
                 doneThis();
-            });                    
+            }, true);
         }, cb.bind(this,res,bads));
     });
 } // nodeToObject
