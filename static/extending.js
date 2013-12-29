@@ -5,7 +5,7 @@ if (typeof GLOBAL === 'undefined') GLOBAL=window;
 
 GLOBAL.L = lmbd;
 
-GLOBAL.assert = function(condition, message) {
+function assert(condition, message) {
     if (!condition) throw 'ASSERT failed'+ (message ? ': '+message : '');
 } // assert
 
@@ -147,13 +147,14 @@ Array.extend('toObjectKeys', function(val, noCB){
     return ret;
 }); // toObjectKeys
 
-// build an object by getting key/value pairs out of a callback, for every array item. Callback must return an array with 2 values [key,value], or an object { key:value }
+// build an object by getting key/value pairs out of a callback, for every array item. Callback must return an array with 2 values [key,value], or an object { key:value }, or a single value that will be the used as key.
 Array.extend('toObject', function(cb){
     var ret = {};
     for (var i= 0, n=this.length; i<n; i++) {
         var v = cb(this[i], i, this);
         if (v instanceof Array && v.length>=2) ret[v[0]] = v[1];
         else if (v instanceof Object) ret._expand(v);
+        else ret[v] = this[i];
     }
     return ret;
 });
@@ -644,10 +645,20 @@ Object.extend('_remapKeys', function(cb){
     return this;
 }); // Object._remapKeys
 
-// rename a property
+// rename a property, or several
 Object.extend('_rename', function(from,to){
-    this[to] = this[from];
-    delete this[from];
+    if (from instanceof Object) {
+        var map = from;
+        for (var k in map) {
+            this[map[k]] = this[k];
+            delete this[k];
+        }
+    }
+    else {
+        this[to] = this[from];
+        delete this[from];
+    }
+    return this;
 }); // Object._rename
 
 Object.extend('_among', function(values){
