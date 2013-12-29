@@ -227,7 +227,7 @@ io.sockets.on('connection', function(socket){
         serving.ioData(data);
         dbg('info.get', data);
         serving.ioOk(cb, {
-            caseSensitiveFileNames:misc.caseSensitiveFileNames,
+            caseSensitiveFileNames: caseSensitiveFileNames,
             frontEnd: log(GLOBAL.fileServer.listeningOn)
         });
     });

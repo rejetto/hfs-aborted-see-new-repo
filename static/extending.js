@@ -5,6 +5,10 @@ if (typeof GLOBAL === 'undefined') GLOBAL=window;
 
 GLOBAL.L = lmbd;
 
+GLOBAL.assert = function(condition, message) {
+    if (!condition) throw 'ASSERT failed'+ (message ? ': '+message : '');
+} // assert
+
 
 /**
  * Build a function made by an expression. All exceptions are catched and undefined is returned.
@@ -639,6 +643,12 @@ Object.extend('_remapKeys', function(cb){
     }
     return this;
 }); // Object._remapKeys
+
+// rename a property
+Object.extend('_rename', function(from,to){
+    this[to] = this[from];
+    delete this[from];
+}); // Object._rename
 
 Object.extend('_among', function(values){
     if (arguments.length > 1) {

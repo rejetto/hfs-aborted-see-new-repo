@@ -43,9 +43,5 @@ exports.su = function(a,b,c) { return b ? a+b+(c||'') : '' }
 
 exports.idFun = function(a) { return a }
 
-exports.assert = function(condition, message) {
-    if (!condition) throw 'ASSERT failed'+ (message ? ': '+message : '');
-} // assert
-
 exports.getPicURI = function(file) { return "/~/pics/"+file+".png"; }
 
