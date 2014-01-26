@@ -196,7 +196,7 @@ function redrawItems() {
     }
 
     var n = listFromServer.items.length;
-    var pages = Math.ceil(n/currentPagination);
+    var pages = Math.max(1, Math.ceil(n/currentPagination));
     if (currentPage >= pages) currentPage = pages-1;
     var overflow = (currentPagination && currentPagination < n);
     var ofs = overflow ? currentPage*currentPagination : 0;
