@@ -3,7 +3,7 @@
  * @author Massimo Melina <a@rejetto.com> 
  */ 
 var v = process.argv;
-var myGigFile = v.length >= 3 ? v[2] : '/bigfile.avi';
+var myGigFile = v.length >= 3 ? v[2] : '/vedere/Valzer con Bashir (2008).avi';
 
 var http = require('http');
 var fs = require('fs');
