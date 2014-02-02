@@ -87,6 +87,15 @@ Function.extend('prebind', function(){
     };
 }); // Function.prebind
 
+// as Function.bind, but doesn't require a scope (for when you don't care)
+Function.extend('bind_', function(){
+    var args = arguments._toArray();
+    var fun = this;
+    return function(){
+        fun.apply(GLOBAL, args.concat(arguments._toArray()));
+    };
+}); // Function.bind
+
 /////////////// ARRAY
 
 Array.prototype.forEach ||
