@@ -153,7 +153,7 @@ function restoreAllItems(li) {
 
 function addItem() {
     var it = getFirstSelectedFolder() || getRootItem();
-    inputBox('Enter name or path', function(s){
+    inputBox('Enter name or path (you need to be on the server machine)', function(s){
         if (!s) return;
         sendCommand('vfs.add', { uri:getURI(it), resource:s }, function(result){
             if (!result.ok) {
