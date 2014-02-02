@@ -1,4 +1,5 @@
 === DOING
+socket.io client seems to be not working anymore. It's used to add files in the shell context menu. Go socksjs then?
 improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
 
