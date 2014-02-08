@@ -3,7 +3,6 @@
  * @author Massimo Melina <a@rejetto.com> 
  */ 
 var http = require('http');
-var socket_io = require('socket.io');
 var serving = require('./lib/serving');
 var listeningOn; // keep track of the tcp coordinates we are currently accepting requests
 
@@ -35,15 +34,8 @@ srv.on('error', function(err){
     }
 });
 
-/*
-    SET UP SOCKET.IO
-*/
-
-var io = exports.io = socket_io.listen(srv);
-serving.setupSocketIO(io);
-io.sockets.on('connection', function(socket){
-    //** sequences like these may be better with Step(). Try 
-    socket.on('get list', function onGetList(data, cb){
+serving.sockets(srv, {
+    'get list': function onGetList(data, cb){
         vfs.fromUrl(data.path, function(fnode) {
             if (serving.ioError(cb, !fnode ? 'not found'
                 : !fnode.isFolder() ? 'not a folder'
@@ -66,7 +58,8 @@ io.sockets.on('connection', function(socket){
                 serving.ioOk(cb, {items:items, bads:bads});
             });//dir
         });
-    });
+
+    }
 });
 
 //////////////////////////////

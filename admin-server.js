@@ -88,11 +88,9 @@ function nodeToObject(fnode, depth, cb, isRecurring) {
     SET UP SOCKET.IO
 */
 
-var io = exports.io = socket_io.listen(srv);
-serving.setupSocketIO(io);
-io.sockets.on('connection', function(socket){
+serving.sockets(srv, {
     
-    socket.on('vfs.get', function onGet(data, cb) {
+    'vfs.get': function onGet(data, cb) {
         serving.ioData(data);
         dbg('vfs.get', data);
         if (serving.ioError(cb, !data ? 'data'
@@ -102,10 +100,10 @@ io.sockets.on('connection', function(socket){
         vfs.fromUrl(data.uri, function(fnode) {
             nodeToObject(fnode, Math.min(2,data.depth), serving.ioOk.bind_(cb));
         });
-    });
+    },
 
     // set properties of a vfs item
-    socket.on('vfs.set', function onSet(data, cb){
+    'vfs.set': function onSet(data, cb){
         serving.ioData(data);
         dbg('vfs.set', data);
         // assertions
@@ -133,10 +131,10 @@ io.sockets.on('connection', function(socket){
                 });
             }
         });
-    });
+    },
     
     // add an item to the vfs
-    socket.on('vfs.add', function onAdd(data, cb){
+    'vfs.add': function onAdd(data, cb){
         serving.ioData(data);
         dbg('vfs.add', data);
         // assertions
@@ -160,10 +158,10 @@ io.sockets.on('connection', function(socket){
                 notifyVfsChange(socket, data.uri);
             });  
         });
-    });
+    },
     
     // delete item, make it non-existent in the VFS
-    socket.on('vfs.delete', function onRemove(data, cb){
+    'vfs.delete': function onRemove(data, cb){
         serving.ioData(data);
         dbg('vfs.delete', data);
         // assertions
@@ -185,10 +183,10 @@ io.sockets.on('connection', function(socket){
                 notifyVfsChange(socket, folder.getURI()); 
             });
         });
-    });
+    },
 
     // restore a temp item that was deleted
-    socket.on('vfs.restore', function onRestore(data, cb){
+    'vfs.restore': function onRestore(data, cb){
         serving.ioData(data);
         dbg('vfs.restore', data);
         // assertions
@@ -221,16 +219,16 @@ io.sockets.on('connection', function(socket){
                 notifyVfsChange(socket, fnode.getURI());
             });
         });
-    });
-    
-    socket.on('info.get', function onInfo(data, cb){
+    },
+
+    'info.get': function onInfo(data, cb){
         serving.ioData(data);
         dbg('info.get', data);
         serving.ioOk(cb, {
             caseSensitiveFileNames: caseSensitiveFileNames,
             frontEnd: log(GLOBAL.fileServer.listeningOn)
         });
-    });
+    }
     
 });
 

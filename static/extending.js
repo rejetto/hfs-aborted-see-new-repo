@@ -4,9 +4,9 @@
 if (typeof GLOBAL === 'undefined') GLOBAL=window;
 
 if (!GLOBAL.assert)
-function assert(condition, message) {
-    if (!condition) throw 'ASSERT failed'+ (message ? ': '+message : '');
-} // assert
+    function assert(condition, message) {
+        if (!condition) throw 'ASSERT failed'+ (message ? ': '+message : '');
+    } // assert
 
 GLOBAL.L = lmbd;
 
@@ -154,8 +154,8 @@ Array.extend('toObjectKeys', function(val, noCB){
 }); // toObjectKeys
 
 /* create an object, the keys are provided by the callback, and the values are the array values.
-    If you want to provide the whole pair key/value, you can return an array [key,value], or an object {key:value}.
-    Please note in this latter case, you may provide as many pairs you want.
+ If you want to provide the whole pair key/value, you can return an array [key,value], or an object {key:value}.
+ Please note in this latter case, you may provide as many pairs you want.
  */
 Array.extend('toObject', function(cb/*v,k*/){
     var ret = {};
@@ -169,11 +169,12 @@ Array.extend('toObject', function(cb/*v,k*/){
 });
 
 // all Array methods with a callback parameter will accept also a string that will be converted to function via L()
-L && ['toObject','toObjectKeys','remap','remapRecur','map','every','filter','reduce','reduceRight','some'].forEach(function(k){
+['toObject','toObjectKeys','remap','remapRecur','map','every','filter','reduce','reduceRight','some'].forEach(function(k){
     var old = Array.prototype[k];
     Array.extend(k, function(){
         var a = arguments._toArray();
-        a[0] = L(a[0]);
+        if (a.length) a[0] = L(a[0]);
+        else if (k=='filter') a[0] = function(x){ return x };
         return old.apply(this, a);
     });
 });
@@ -182,7 +183,7 @@ L && ['toObject','toObjectKeys','remap','remapRecur','map','every','filter','red
  If the string begins with a "." the rest is the property determining the order. A final "!" will invert the order.
  If the string doesn't begin with a "." then it's passed to L() to build a lambda function.
  */
-L && (function(){
+(function(){
     var old = Array.prototype.sort;
     Array.extend('sort', function(f){
         if (typeof f == 'string' && f[0] === '.') {
@@ -200,11 +201,11 @@ L && (function(){
 
 // return first element accepted by the callback. In case of non-boolean returned value, the value is returned instead of the element.
 Array.extend('first', function(cb){
-   cb = L(cb);
-   for (var i= 0, n=this.length; i!==n; i++) {
+    cb = L(cb);
+    for (var i= 0, n=this.length; i!==n; i++) {
         var res = cb.call(this, this[i], i);
         if (res) return res===true ? this[i] : res;
-   }
+    }
 }); // Array.first
 
 // like splice, but supports negative indexes and returns the final array instead of the removed elements
@@ -271,7 +272,7 @@ Array.extend('for', function(cb){
     if (!cb) return this;
     cb = L(cb);
     if (cb.length > 1) {
-        for (var i= 0, last=this.length; i<=last; i++) {
+        for (var i= 0, last=this.length-1; i<=last; i++) {
             if (cb.call(this, this[i], i, i===last) === false) break;
         }
     }
@@ -305,6 +306,19 @@ Array.extend('append', function(other) {
     }
     return this;
 }); // Array.append
+
+// like append() but put items in front
+Array.extend('prepend', function(other) {
+    if (other instanceof Array) {
+        for (var i=0, a=other, n=a.length; i<n; i++) {
+            this.unshift(a[i]);
+        }
+    }
+    else {
+        this.unshift(other);
+    }
+    return this;
+}); // Array.prepend
 
 /////////////// STRING
 
@@ -651,6 +665,33 @@ Object.extend('_map', function(cb/*v,k*/, filter){
     return ret;
 }); // Object._map
 
+// as _map, but lets you specifies both keys and values in the form [key,value] or {key:value}
+Object.extend('_mapKeys', function(cb/*v,k*/, filter){
+    if (typeof cb==='string' && cb.endsWith('||SKIP')) {
+        filter = true;
+        cb = cb.ss(0,-6);
+    }
+    else if (cb._isBaseObject()) {
+        for (var old in cb) {
+            var new_ = cb[old];
+            if (new_ !== null) this[new_] = this[old];
+            if (new_ === undefined) continue;
+            delete this[old];
+        }
+        return this;
+    }
+
+    cb = L(cb);
+    var ret = {};
+    for (var k in this) {
+        var v = cb.call(this, this[k], k);
+        if (filter && !v) continue;
+        if (v instanceof Array) ret[ v[0] ] = v[1];
+        else ret._expand(v);
+    }
+    return ret;
+}); // Object._mapKeys
+
 // returns a new array with values obtained from a callback
 Object.extend('_mapToArray', function(cb/*v,k*/, filter){
     if (typeof cb==='string' && cb.endsWith('||SKIP')) {
@@ -696,8 +737,22 @@ Object.extend('_remapRecur', function(cb){
     return this;
 }); // Object._remapRecur
 
-// as remap(), but overwrite keys instead of values. Callback should return the new key name as string, or an array if you want the value to be associated to multiple keys. You can also return an object ( newKey:newValue, more:more }. Returning undefined or the same key will leave it unchanged, while null will delete the entry.
+/* as remap(), but overwrite keys instead of values.
+    Callback should return the new key name as string, or an array if you want the value to be associated to multiple keys.
+    You can also return an object ( newKey:newValue, more:more }.
+    Returning undefined or the same key will leave it unchanged, while null will delete the entry.
+    If $cb is an object then it's in the form { oldKey: newKey }
+ */
 Object.extend('_remapKeys', function(cb){
+    if (cb._isBaseObject()) {
+        for (var old in cb) {
+            var new_ = cb[old];
+            if (new_ !== null) this[new_] = this[old];
+            if (new_ === undefined) continue;
+            delete this[old];
+        }
+        return this;
+    }
     cb = L(cb);
     for (var k in this) {
         var v = this[k];
@@ -922,3 +977,28 @@ Object.extend('_splitKeys', function(splitter){
         return k.split(splitter);
     });
 }); // Object._splitKeys
+
+Object.extend('_isBaseObject', function(){
+    return this.__proto__.constructor === Object
+}); // Object._isBaseObject
+
+// like _expand but keys are meant to be
+Object.extend('_merge', function(another, options){
+    if (!options) options = {};
+    else if (typeof options === 'string') options = { split:options };
+
+    for (var k in another) {
+        var run = this;
+        k.split(options.split||'.').for(function(part,i,last){
+            if (last) {
+                run[part] = another[k];
+                return;
+            }
+            if (!(part in run)) {
+                run[part] = {}; //
+            }
+            run = run[part];
+        });
+    }
+    return this;
+}); // Object._merge
