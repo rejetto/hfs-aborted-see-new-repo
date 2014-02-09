@@ -45,3 +45,5 @@ exports.idFun = function(a) { return a }
 
 exports.getPicURI = function(file) { return "/~/pics/"+file+".png"; }
 
+exports.isString = function(v) { return typeof v === 'string' }
+exports.isFunction = function(v) { return v instanceof Function }
