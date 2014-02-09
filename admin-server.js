@@ -42,7 +42,7 @@ srv.on('error', function(err){
     @return the object representing the FileNode if no depth is specified. Otherwise the returning turns into
         an async fashion and you need to specify a callback to retrieve the result.    
 */
-function nodeToObject(fnode, depth, cb, isRecurring) {
+function nodeToObjectForStreaming(fnode, depth, cb, isRecurring) {
     assert(!cb || typeof cb == 'function', 'cb'); // this is necessarily an async procedure: require a callback
     if (!fnode) {
         if (cb) cb(false);
@@ -76,13 +76,13 @@ function nodeToObject(fnode, depth, cb, isRecurring) {
     fnode.dir(function(items,bads){
         res.children = [];
         async.forEach(items, function(e, doneThis){
-            nodeToObject(e, depth-1, function(obj){
+            nodeToObjectForStreaming(e, depth-1, function(obj){
                 res.children.push(obj);
                 doneThis();
             }, true);
         }, cb.bind_(res,bads));
     });
-} // nodeToObject
+} // nodeToObjectForStreaming
 
 /*
     SET UP SOCKET.IO
@@ -98,7 +98,7 @@ serving.sockets(srv, {
             : null)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
-            nodeToObject(fnode, Math.min(2,data.depth), serving.ioOk.bind_(cb));
+            nodeToObjectForStreaming(fnode, Math.min(2,data.depth), serving.ioOk.bind_(cb));
         });
     },
 
@@ -154,7 +154,7 @@ serving.sockets(srv, {
                 return;
             }            
             fnode.add(data.resource, function(newNode){
-                serving.ioOk(cb, {item:nodeToObject(newNode)});
+                serving.ioOk(cb, {item:nodeToObjectForStreaming(newNode)});
                 notifyVfsChange(socket, data.uri);
             });  
         });
