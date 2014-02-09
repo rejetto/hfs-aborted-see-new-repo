@@ -43,7 +43,7 @@ srv.on('error', function(err){
         an async fashion and you need to specify a callback to retrieve the result.    
 */
 function nodeToObjectForStreaming(fnode, depth, cb, isRecurring) {
-    assert(!cb || typeof cb == 'function', 'cb'); // this is necessarily an async procedure: require a callback
+    assert(!cb || isFunction(cb), 'cb'); // this is necessarily an async procedure: require a callback
     if (!fnode) {
         if (cb) cb(false);
         return false;
@@ -88,13 +88,13 @@ function nodeToObjectForStreaming(fnode, depth, cb, isRecurring) {
     SET UP SOCKET.IO
 */
 
-serving.sockets(srv, {
+var sockets = serving.sockets(srv, {
     
     'vfs.get': function onGet(data, cb) {
         serving.ioData(data);
         dbg('vfs.get', data);
         if (serving.ioError(cb, !data ? 'data'
-            : typeof data.uri != 'string' ? 'uri'
+            : !isString(data.uri) ? 'uri'
             : null)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
@@ -108,7 +108,7 @@ serving.sockets(srv, {
         dbg('vfs.set', data);
         // assertions
         if (serving.ioError(cb, !data ? 'data'
-            : typeof data.uri != 'string' ? 'uri'
+            : !isString(data.uri) ? 'uri'
             : null)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
@@ -117,14 +117,14 @@ serving.sockets(srv, {
                 return;
             }
             if (data.name) {
-                if (serving.ioError(cb, typeof data.name != 'string' ? 'name' : null)) return;
+                if (serving.ioError(cb, isString(data.name) ? null : 'name')) return;
                 fnode.name = data.name;
                 serving.ioOk(cb);
                 notifyVfsChange(socket, fnode.getURI().excludeTrailing('/'));
                 return;
             }
             if (data.resource) {
-                if (serving.ioError(cb, typeof data.resource != 'string' ? 'resource' : null)) return;
+                if (serving.ioError(cb, isString(data.resource) ? null : 'resource')) return;
                 fnode.set(data.resource, function(){
                     serving.ioOk(cb);
                     notifyVfsChange(socket, fnode.getURI().excludeTrailing('/'));
@@ -135,12 +135,13 @@ serving.sockets(srv, {
     
     // add an item to the vfs
     'vfs.add': function onAdd(data, cb){
+        var socket = this;
         serving.ioData(data);
         dbg('vfs.add', data);
         // assertions
         if (serving.ioError(cb, !data ? 'data'
-            : typeof data.uri !== 'string' ? 'uri'
-            : typeof data.resource !== 'string' ? 'resource'
+            : !isString(data.uri) ? 'uri'
+            : !isString(data.resource) ? 'resource'
             : null)) return;
 
         vfs.fromUrl(data.uri, function(fnode) {
@@ -166,7 +167,7 @@ serving.sockets(srv, {
         dbg('vfs.delete', data);
         // assertions
         if (serving.ioError(cb, !data ? 'data'
-            : typeof data.uri !== 'string' ? 'uri'
+            : !isString(data.uri) ? 'uri'
             : null)) return;
 
         vfs.fromUrl(data.uri, function(fnode){
@@ -191,8 +192,8 @@ serving.sockets(srv, {
         dbg('vfs.restore', data);
         // assertions
         if (serving.ioError(cb, !data ? 'data'
-            : typeof data.uri !== 'string' ? 'uri'
-            : typeof data.resource !== 'string' ? 'resource'
+            : !isString(data.uri) ? 'uri'
+            : !isString(data.resource) ? 'resource'
             : null)) return;
 
         vfs.fromUrl(data.uri, function(fnode){
@@ -234,8 +235,8 @@ serving.sockets(srv, {
 
 notifyVfsChange = function(socket, uri) {
     dbg('vfs.changed');
-    [socket.broadcast, require('./file-server').io.sockets].forEach(function(o){
-        o.emit('vfs.changed', serving.ioData({uri:uri}));
-    });
+    var evt = 'vfs.changed', data={uri:uri};
+    require('./file-server').sockets.broadcast(evt, data);
+    socket.broadcast.emit(evt, data);
 }; // notifyVfsChange
 

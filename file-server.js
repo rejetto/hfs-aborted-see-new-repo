@@ -34,7 +34,7 @@ srv.on('error', function(err){
     }
 });
 
-serving.sockets(srv, {
+exports.sockets = serving.sockets(srv, {
     'get list': function onGetList(data, cb){
         vfs.fromUrl(data.path, function(fnode) {
             if (serving.ioError(cb, !fnode ? 'not found'
