@@ -91,8 +91,6 @@ function nodeToObjectForStreaming(fnode, depth, cb, isRecurring) {
 var sockets = serving.sockets(srv, {
     
     'vfs.get': function onGet(data, cb) {
-        serving.ioData(data);
-        dbg('vfs.get', data);
         if (serving.ioError(cb, !data ? 'data'
             : !isString(data.uri) ? 'uri'
             : null)) return;
@@ -104,8 +102,7 @@ var sockets = serving.sockets(srv, {
 
     // set properties of a vfs item
     'vfs.set': function onSet(data, cb){
-        serving.ioData(data);
-        dbg('vfs.set', data);
+        var socket = this;
         // assertions
         if (serving.ioError(cb, !data ? 'data'
             : !isString(data.uri) ? 'uri'
@@ -136,8 +133,6 @@ var sockets = serving.sockets(srv, {
     // add an item to the vfs
     'vfs.add': function onAdd(data, cb){
         var socket = this;
-        serving.ioData(data);
-        dbg('vfs.add', data);
         // assertions
         if (serving.ioError(cb, !data ? 'data'
             : !isString(data.uri) ? 'uri'
@@ -163,8 +158,7 @@ var sockets = serving.sockets(srv, {
     
     // delete item, make it non-existent in the VFS
     'vfs.delete': function onRemove(data, cb){
-        serving.ioData(data);
-        dbg('vfs.delete', data);
+        var socket = this;
         // assertions
         if (serving.ioError(cb, !data ? 'data'
             : !isString(data.uri) ? 'uri'
@@ -188,8 +182,7 @@ var sockets = serving.sockets(srv, {
 
     // restore a temp item that was deleted
     'vfs.restore': function onRestore(data, cb){
-        serving.ioData(data);
-        dbg('vfs.restore', data);
+        var socket = this;
         // assertions
         if (serving.ioError(cb, !data ? 'data'
             : !isString(data.uri) ? 'uri'
@@ -223,8 +216,6 @@ var sockets = serving.sockets(srv, {
     },
 
     'info.get': function onInfo(data, cb){
-        serving.ioData(data);
-        dbg('info.get', data);
         serving.ioOk(cb, {
             caseSensitiveFileNames: caseSensitiveFileNames,
             frontEnd: log(GLOBAL.fileServer.listeningOn)
