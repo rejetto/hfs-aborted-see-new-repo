@@ -4,13 +4,15 @@
 
 LOTS_OF_FILE_IN_FOLDER = 1000;
 
-tpl.item = "<li>"
+tpl.tempItem = "<li>"
     +"<span class='expansion-button'></span><span class='icon'></span><span class='label'></span>"
     +"</li>";
-tpl.tempItem = "<li>"
+tpl.item = "<li>"
     +"<span class='expansion-button'></span>"
     +"<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='width:1.5em; height:1.5em; position:absolute;' viewBox='0 0 100 100'>"
-        +"<circle cx='0' cy='0' r='25' stroke='#000' stroke-width='2' fill='rgba(200,200,0,0.4)'/>"
+        +"<circle cx='0' cy='0' r='25' stroke='#000' stroke-width='2' fill='rgba(200,200,0,0.5)'/>"
+        +"<line x1='0' y1='0' x2='25' y2='0' stroke='#000' stroke-width='2' />"
+        +"<line x1='0' y1='0' x2='0' y2='25' stroke='#000' stroke-width='2' />"
     +"</svg>"
     +"<span class='icon'></span><span class='label'></span>"
     +"</li>";
