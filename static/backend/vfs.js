@@ -4,24 +4,28 @@
 
 LOTS_OF_FILE_IN_FOLDER = 1000;
 
-tpl.tempItem = "<li>"
+tpl.item = "<li>"
     +"<span class='expansion-button'></span><span class='icon'></span><span class='label'></span>"
     +"</li>";
-tpl.item = "<li>"
-    +"<span class='expansion-button'></span>"
-    +"<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='width:1.5em; height:1.5em; position:absolute;' viewBox='0 0 100 100'>"
-        +"<circle cx='0' cy='0' r='25' stroke='#000' stroke-width='2' fill='rgba(200,200,0,0.6)'/>"
-        +"<line x1='0' y1='0' x2='25' y2='0' stroke='#000' stroke-width='2' />"
-        +"<line x1='0' y1='0' x2='0' y2='25' stroke='#000' stroke-width='2' />"
-    +"</svg>"
-    +"<span class='icon'></span><span class='label'></span>"
-    +"</li>";
+tpl.markerVirtual = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='width:1.5em; height:1.5em; position:absolute;' viewBox='0 0 100 100'>"
+        +"<circle cx='0' cy='0' r='30' stroke='#000' stroke-width='2' fill='rgba(200,200,0,0.5)'/>"
+        +"<line x1='0' y1='0' x2='30' y2='0' stroke='#000' stroke-width='2' />"
+        +"<line x1='0' y1='0' x2='0' y2='30' stroke='#000' stroke-width='2' />"
+    +"</svg>";
+tpl.markerTemp = "";
+tpl.markerOver = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='width:1.5em; height:1.5em; position:absolute;' viewBox='0 0 100 100'>"
+    +"<circle cx='0' cy='0' r='30' stroke='#000' stroke-width='2' fill='rgba(300,0,0,0.3)'/>"
+    +"<line x1='0' y1='0' x2='30' y2='0' stroke='#000' stroke-width='2' />"
+    +"<line x1='0' y1='0' x2='0' y2='30' stroke='#000' stroke-width='2' />"
+    +"</svg>";
 
 tpl.noChildren = "<span class='no-children'>nothing</span>";
 tpl.loader = "<img src='/~/pics/loader.gif' class='near-text' />";
 
+tpl._remap('$(A)'); // precompile, so we clone, no parsing
+
 $(function(){
-    $(tpl.item).addClass('item').appendTo($('<ul>').appendTo('#vfs')); // create the root element
+    tpl.item.clone().addClass('item').attr('id','root').appendTo($('<ul>').appendTo('#vfs')); // create the root element
 
     // hide expansion button
     expansionCss = addStyleRule('#vfs .expansion-button','opacity:0');
@@ -119,7 +123,7 @@ function deleteItem() {
         li.fadeOut(100, function(){
             li.remove();
             if (!getFirstChild(parent).length) { 
-                parent.find('ul:first').append(tpl.noChildren); // deleted last item of a folder
+                parent.find('ul:first').append(tpl.noChildren.clone()); // deleted last item of a folder
             }
         })        
     });
@@ -154,7 +158,7 @@ function restoreAllItems(li) {
 } // restoreAllItems
 
 function addItem() {
-    var it = getFirstSelectedFolder() || getRootItem();
+    var it = getFirstSelectedFolder() || asItem(getRoot());
     inputBox('Enter name or path (you need to be on the server machine)', function(s){
         if (!s) return;
         sendCommand('vfs.add', { uri:getURI(it), resource:s }, function(result){
@@ -332,9 +336,7 @@ function getFirstSelectedFolder() {
     return false;
 } // getFirstSelectedFolder
 
-function getRoot() { return $('#vfs li:first'); } 
-
-function getRootItem() { return getRoot().data('item'); }
+function getRoot() { return $('#root'); }
 
 /** return children in the same format of the parameter: jQuery, array of items or array of HTMLElements */
 function getChildren(x) {
@@ -427,7 +429,7 @@ function isFolder(it) {
     return it && it.itemKind.endsWith('folder');
 } // isFolder
 
-function isRoot(it) { return getURI(it) == '/' }
+function isRoot(it) { return asItem(it).isRoot }
 
 function isExpanded(x) { return asLI(x).hasClass('expanded') }
 
@@ -436,6 +438,7 @@ function isDeleted(x) { return asLI(x).parent().closest('.deleted-items').length
 function getURI(item) {
     item = asItem(item);
     if (!item) return false;
+    if (isRoot(item)) return '/';
     var p = getParent(item);
     return (p ? getURI(p) : '') // recursion
         + encodeURI(item.name)
@@ -444,7 +447,7 @@ function getURI(item) {
 
 /** get the item from the uri, but only if it's currently in our tree */
 function getItemFromURI(uri, from) {
-    var run = asItem(from) || getRootItem();
+    var run = asItem(from) || asItem(getRoot());
     for (var i=0, a=uri.split('/'), l=a.length; i<l; ++i) {
         var name = a[i];
         if (!name) continue;
@@ -469,13 +472,14 @@ function enableButton(name, condition) {
 
 function treatFileData(item) {
     if (!item.name) item.name = basename(item.resource);
+    else if (item.name==='/') item._expand({ name:'home', isRoot:true });
     if (!item.children) return;
     item.children.forEach(treatFileData);
 } // treatFileData
 
 function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
-    var loader = $(tpl.loader).appendTo( e.find('.label:first') );
+    var loader = tpl.loader.clone().appendTo( e.find('.label:first') );
     sendCommand('vfs.get', ioData({ uri:item ? getURI(item) : '/', depth:1 }), function(data){
         try {
             if (!data || !data.ok) return;
@@ -497,7 +501,7 @@ function reloadVFS(item, cb) {
                 });
             }
             else if (!ul.children().length) { // there may be special items making UL non-empty
-                ul.append(tpl.noChildren);
+                ul.append(tpl.noChildren.clone());
             }
             if (cb) cb();
         }
@@ -562,11 +566,11 @@ function bindItemToDOM(item, element) {
     }   
     li.data({item:item});
     li.find('.label:first').text(item.name);
-    var icon = isFolder(item) ? 'folder' : item.itemKind;
-    if (icon=='file') {
-        icon = nameToType(item.name) || icon;
-    } 
-    li.find('.icon:first').html("<img src='"+getIconURI(icon)+"' />");
+    var icon = isRoot(item) ? getPicURI('home')
+        : getIconURI(isFolder(item) ? 'folder'
+            : item.itemKind=='file' && nameToType(item.name) || item.itemKind
+        );
+    li.find('.icon:first').html("<img src='"+icon+"' />");
     if (isFolder(item) && isExpanded(item)) {
         updateDeletedItems(item);
     }
@@ -609,7 +613,7 @@ function updateDeletedItems(it, options) {
     // ensure there's a LI of the pseudo-folder 
     var li = ul.children('li.deleted-items');
     if (!li.length) {  
-        li = $(tpl.item).addClass('deleted-items').prependTo(ul); 
+        li = tpl.item.clone().addClass('deleted-items').prependTo(ul);
         li.find('.icon:first').html("<img src='{0}' style='position:absolute;'><img src='{1}'>".format(getPicURI("cross"), getIconURI('folder')));
         setExpanded(li, false);
     }
@@ -647,8 +651,11 @@ function addItemUnder(under, item, position) {
     
      
     under.children('span.no-children').remove(); // remove any place holder
-    var $tpl = tpl[(item.nodeKind == 'temp') ? 'tempItem' : 'item']; 
-    var el = $($tpl).addClass(item.deleted ? 'deleted' : 'item');
+    var el = tpl.item.clone().addClass(item.deleted ? 'deleted' : 'item');
+    // overlay
+    var kind = (item.nodeKind == 'temp') ? 'Temp' : (item.overlapping) ? 'Over' : 'Virtual';
+    tpl['marker'+kind].clone().insertBefore(el.find('.icon'));
+
     var beforeThis; // where to put the new item
     if (position._among('top','sorted')) { // both require to put the item after special items (so skip them)
         beforeThis = getFirstChild(under); // go down one level
