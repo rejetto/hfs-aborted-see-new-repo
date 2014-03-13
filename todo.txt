@@ -5,7 +5,6 @@ improve in-source documentation
 === NEXT
 benchmark on mobile: measure the time it takes to enter a folder, and then show it with an alert
 save vfs to file (yml)
-backend: overlapped node are not displayed (fixed's and mod's overlapping temp's)
 
 === AFTER
 ? comply with standard callback(err,data)

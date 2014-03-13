@@ -447,7 +447,7 @@ function getURI(item) {
 
 /** get the item from the uri, but only if it's currently in our tree */
 function getItemFromURI(uri, from) {
-    var run = asItem(from) || asItem(getRoot());
+    var run = asItem(from || getRoot());
     for (var i=0, a=uri.split('/'), l=a.length; i<l; ++i) {
         var name = a[i];
         if (!name) continue;
@@ -480,7 +480,7 @@ function treatFileData(item) {
 function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
     var loader = tpl.loader.clone().appendTo( e.find('.label:first') );
-    sendCommand('vfs.get', ioData({ uri:item ? getURI(item) : '/', depth:1 }), function(data){
+    sendCommand('vfs.get', { uri:item ? getURI(item) : '/', depth:1 }, function(data){
         try {
             if (!data || !data.ok) return;
             var n = tryGet(data, 'children.length');
