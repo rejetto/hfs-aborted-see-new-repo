@@ -96,7 +96,8 @@ var sockets = serving.sockets(srv, {
             : null)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
-            nodeToObjectForStreaming(fnode, Math.min(2,data.depth), serving.ioOk.bind_(cb));
+            if (!fnode) serving.ioError(cb, 'not found');
+            else nodeToObjectForStreaming(fnode, Math.min(2,data.depth), serving.ioOk.bind_(cb));
         });
     },
 
