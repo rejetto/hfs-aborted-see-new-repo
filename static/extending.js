@@ -17,6 +17,7 @@ GLOBAL.L = lmbd;
  * The local closure can be extended with more variables by passing $inject, and it can be accessed as "P0".
  *      If it's an object, all it's values are accessed directly by the keys (e.g. passing {a:1} you get "a" in the scope, and its value is 1).
  *      If it's an array instead, the components can be accessed as P1, P2, etc.
+ * "this." can be shortened in "@".
  */
 function lmbd(f, inject) {
     if ((typeof f)._among('undefined','function')) return f; // already a function
@@ -30,7 +31,9 @@ function lmbd(f, inject) {
             f=f.replace(a[i], 'innerLambdas['+i+']'); // refer to it
         }
     }
-    var fNoStrings = f.replace(/'(?:\\'|[^'])*'|"(?:\\"|[^"])*"/g, ''); // get a version with all strings removed
+
+    var stringsRE = /'(?:\\'|[^'])*'|"(?:\\"|[^"])*"/g;
+    var fNoStrings = f.replace(stringsRE, ''); // get a version with all strings removed
     var pars = fNoStrings.match(/(^|\b)[A-Z]($|\b)/g); // gather parameters in the form of single capital letter.
     pars = pars ? pars.unique() : ''; // this also sorts the array, as a side effect, and we like it because order is determined by alphabetical order, not appearance in the body
     var localVars = (fNoStrings.match(/\$[A-Z]($|\b)/g) ||[]).unique(); // gather local variables in the form of a $ followed by single capital letter.
@@ -49,6 +52,13 @@ function lmbd(f, inject) {
     if (inject instanceof Object && !(inject instanceof Array))  // explode the object into the local scope
         injectVars.append(inject._mapToArray('$2+"=inject."+$2'));
     injectVars = injectVars.length ? 'var '+injectVars+';' : '';
+
+    // replace "@" in "this."
+    if (~f.indexOf('@')) { // optimization
+        var stringsFound = stringsRE.multiExec(f);
+        function inString(idx){ return stringsFound && stringsFound.some('P0>=A.index && P0<A.index+A[0].length', idx) }
+        f = f.replace(/@(?:([a-zA-Z])|(.)|$)/g, function(all,letter,other,pos){ return inString(pos) ? all : (letter) ? 'this.'+letter : 'this'+(other||'') });
+    }
 
     f = '(function(){ '+injectVars+' return (function('+pars+'){ try { '+localVars+' return '+f+' } catch(e){} }) })()';
     try { return eval(f) }
@@ -128,9 +138,12 @@ Array.extend('some', function(cb) {
 
 // as map(), but overwrite elements instead of creating a new array
 Array.extend('remap', function(cb){
+    var filter = (typeof cb==='string' && cb.endsWith('||SKIP'));
+    cb = L(cb);
     for (var i=0, n=this.length; i<n; i++) {
         this[i] = cb.call(this, this[i], i, this);
     }
+    if (filter) this.removeItems();
     return this;
 });
 
@@ -167,7 +180,7 @@ Array.extend('toObjectKeys', function(val, noCB){
  Please note in this latter case, you may provide as many pairs you want.
  */
 Array.extend('toObject', function(cb/*v,k*/){
-    assert(cb, 'bad args')
+    assert(cb, 'bad args');
     var ret = {};
     for (var i= 0, n=this.length; i<n; i++) {
         var v = cb.call(this, this[i], i, this);
@@ -179,15 +192,22 @@ Array.extend('toObject', function(cb/*v,k*/){
 });
 
 // all Array methods with a callback parameter will accept also a string that will be converted to function via L()
-['toObject','toObjectKeys','remap','remapRecur','map','every','filter','reduce','reduceRight','some'].forEach(function(k){
+['toObject','toObjectKeys','remapRecur','map','every','filter','reduce','reduceRight','some'].forEach(function(k){
     var old = Array.prototype[k];
     Array.extend(k, function(){
         var a = arguments._castToArray();
         if (a.length) {
             if (typeof a[0]==='string') a[0] = L(a[0], a[1]);
         }
-        else if (k=='filter') a[0] = function(x){ return x };
-        return old.apply(this, a);
+        else if (k==='filter') a[0] = function(x){ return x };
+
+        var v = old.apply(this, a);
+
+        if (k==='map' && typeof arguments[0]==='string' && arguments[0].endsWith('||SKIP')) {
+            v.removeItems();
+        }
+
+        return v;
     });
 });
 
@@ -198,7 +218,7 @@ Array.extend('toObject', function(cb/*v,k*/){
 (function(){
     var old = Array.prototype.sort;
     Array.extend('sort', function(f){
-        if (typeof f == 'string' && f[0] === '.') {
+        if (typeof f == 'string' && (f[0]==='.' || f[0]==='[')) {
             if (f.ss(-1) === '!') {
                 var invert = true;
                 f = f.ss(0, -1); // remove character
@@ -232,6 +252,10 @@ Array.extend('sum', function(subfield){
 Array.extend('multiply', function(subfield){
     return this.reduce('A*B'+(subfield||'') ,1);
 }); // Array.multiply
+
+Array.extend('reduceArrays', function(subfield){
+    return this.reduce('A.concat(B{0})'.x(subfield||''), []);
+}); // Array.reduceArrays
 
 // return first element accepted by the callback. In case of non-boolean returned value, the value is returned instead of the element.
 Array.extend('first', function(cb){
@@ -303,7 +327,10 @@ Array.extend('unique', function() {
 });
 
 Array.extend('addUnique', function(v){
-    if (!this.contains(v)) this.push(v);
+    if (!(v instanceof Array)) v = [v];
+    for (var i=0, n=v.length; i<n; i++) {
+        if (!this.contains(v[i])) this.push(v[i]);
+    }
     return this;
 }) // addUnique
 
@@ -352,6 +379,17 @@ Array.extend('append', function(other) {
     return this;
 }); // Array.append
 
+// build a new array with $n elements and $v as value. If $v is a function, then it is used as callback(idx) returning the value.
+Array.make = function(n, v) {
+    var ret = [];
+    ret.length = n;
+    if (v instanceof Function)
+        ret.remap(v);
+    else for (var i=0; i<ret.length; i++)
+        ret[i] = v;
+    return ret;
+}; // Array.make
+
 // like append() but put items in front
 Array.extend('prepend', function(other) {
     if (other instanceof Array) {
@@ -389,10 +427,16 @@ String.extend(['format','x'], function(){
             ret = (next instanceof Function) ? next.call(ret) : next;
         }
         if (parameter && ret) {
-            var v = /(\d*)-(\d*)/.exec(parameter); // range form?
-            if (v) {
+            var v;
+            if (v = /(\d*)-(\d*)/.exec(parameter)) { // range form?
                 ret = String(ret);
                 ret = ret.substring(v[1]-1 || 0, v[2] || ret.length) // extract the substring in range
+            }
+            else if (v = /ƒ ?(.+)/.exec(parameter)) { // lambda syntax
+                ret = L(v[1])(ret);
+            }
+            else if ((v=GLOBAL[parameter]) instanceof Function) { // global function
+                ret = v(ret);
             }
         }
         return (ret === undefined) ? (me.skipUndefined ? whole : '')
@@ -540,7 +584,7 @@ Number.extend('for', function(cb/*index,isLast*/){
     for (var i=0; i<n; i++) cb(i, i===n);
 });
 
-////////////// MULTIEXEC
+////////////// REGEXP
 
 RegExp.extend('multiExec', function(s){
     var m, ret=[];
@@ -550,6 +594,10 @@ RegExp.extend('multiExec', function(s){
     return ret.length ? ret : null; // like exec() does
 }); // multiExec
 
+RegExp.csv = function(subexp,sep){
+    return subexp && RegExp('^(?![ ,])(('+(sep||' *, *')+'|^)('+(subexp.source||subexp)+'))*$')
+};
+
 /////////////// DATE
 
 Date.SECOND = 1000;
@@ -557,12 +605,24 @@ Date.MINUTE = 60*Date.SECOND;
 Date.HOUR = 60*Date.MINUTE;
 Date.DAY = 24*Date.HOUR;
 Date.extend('shift', function(ms){
-    this.setMilliseconds(this.getMilliseconds() + ms);
+    var months = ms/Date.DAY/30;
+    if (months === Math.round(months)) // this is hopely a smart move: we understand you are talking about months (or years). This is different because months have variable days. Hoping this is the expected result.
+        this.setMonth(this.getMonth() + months);
+    else
+        this.setMilliseconds(this.getMilliseconds() + ms);
     return this;
 });
-Date.extend('add', function(ms){
+Date.extend('plus', function(ms){
     return (new Date(this)).shift(ms)
 });
+Date.extend('elapsed', function(unit, since){
+    return ((since||Date.now())-this)/(unit||1)
+});
+Date.elapsed = function(since, unit){
+    return Date.now()-since/(unit||1);
+}
+if (!Date.now)
+Date.now = function now() { return +new Date() };
 
 /////////////// OBJECT
 
@@ -605,6 +665,13 @@ Object.extend('_filter', function(what) {
     }
     return this;
 }); // Object._filter
+
+Object.extend('_filterCopy', function(what) {
+    if (typeof what == 'string' && what.startsWith(','))
+        what = what.ss(1).split(',');
+    return (what instanceof Array) ? this._map('P0.contains(B) && A ||SKIP', what)
+        : this._map('({0}) && A ||SKIP'.x(what))
+}); // Object._filterCopy
 
 // return first element accepted by the callback. In case of non-boolean returned value, the value is returned instead of the element.
 Object.extend('_first', function(cb){
@@ -653,7 +720,7 @@ Object.extend('_plus', function(another){ return this._clone()._expand(another) 
 
 // returns a new object made by removing some keys from this
 Object.extend('_minus', function(keys){
-    return this._clone(this._keys().removeItems(isArray(keys) ? keys : keys.split(',')))
+    return this._clone(this._keys().removeItems(keys instanceof Array ? keys : keys.split(',')))
 }); // Object._minus
 
 Object.extend('_expand', function(another, keys){
@@ -727,11 +794,8 @@ Object.extend('_for', function(cb) {
 }); // Object._for
 
 // returns a new object with same keys but mapped values
-Object.extend('_map', function(cb/*v,k*/, filter){
-    if (typeof cb==='string' && cb.endsWith('||SKIP')) {
-        filter = true;
-        cb = cb.ss(0,-6);
-    }
+Object.extend('_map', function(cb/*v,k*/){
+    var filter = (typeof cb==='string' && cb.endsWith('||SKIP'));
     cb = L(cb);
     var ret = {};
     for (var k in this) {
@@ -742,24 +806,19 @@ Object.extend('_map', function(cb/*v,k*/, filter){
 }); // Object._map
 
 // as _map, but lets you specifies both keys and values in the form [key,value] or {key:value}
-Object.extend('_mapKeys', function(cb/*v,k*/, filter){
+Object.extend('_mapKeys', function(cb/*v,k*/){
     var ret = {};
-    if (typeof cb==='string' && cb.endsWith('||SKIP')) {
-        filter = true;
-        cb = cb.ss(0,-6);
-    }
-    else if (cb._isBaseObject()) {
-        for (var old in cb) {
-            var new_ = cb[old];
-            if(filter && !new_ || new_===null) continue;
-            ret[new_] = this[old];
-        }
-        return ret;
-    }
+    var filter = (typeof cb==='string' && cb.endsWith('||SKIP'));
 
-    cb = L(cb);
+    var map = cb._isBaseObject() && cb;
+    if (!map) cb = L(cb);
     for (var k in this) {
-        var v = cb.call(this, this[k], k);
+        var v = this[k];
+        if (map) {
+            ret[k in map ? map[k] : k] = v;
+            continue;
+        }
+        v = cb.call(this, v, k);
         if (filter && !v) continue;
         if (v instanceof Array) ret[ v[0] ] = v[1];
         else ret._expand(v);
@@ -768,11 +827,8 @@ Object.extend('_mapKeys', function(cb/*v,k*/, filter){
 }); // Object._mapKeys
 
 // returns a new array with values obtained from a callback
-Object.extend('_mapToArray', function(cb/*v,k*/, filter){
-    if (typeof cb==='string' && cb.endsWith('||SKIP')) {
-        filter = true;
-        cb = cb.ss(0,-6);
-    }
+Object.extend('_mapToArray', function(cb/*v,k*/){
+    var filter = (typeof cb==='string' && cb.endsWith('||SKIP'));
     cb = L(cb);
     var ret = [];
     for (var k in this) {
@@ -862,25 +918,32 @@ Object.extend('_among', function(values){
 
 // same as log(), but syntactically useful because you don't have to surround the code with parenthesis, just append ._log()
 Object.extend('_log', function(){
-    if (arguments.length) log(arguments[0]);
-    return log(this.valueOf());
+    console.debug.apply(console, arguments._castToArray().append(this.valueOf()));
+    return this.valueOf();
 });
 
 //Object.extend('_same', function(other){ return JSON.stringify(this) == JSON.stringify(other) });
 
 // $strict is true by default. Without strict comparison ""==false && 3=="3"
-Object.extend('_same', function(other, strict){
+Object.extend('_same', function(other, strict, options){
     if (strict === undefined) strict = true; // default value
     // if $other is a primitive, then try to compare with the primitive version of $this. Someone may instead like to convert $other into an object and continue, because $this may be for example a modified Number.
     if (!(other instanceof Object))
         return this.valueOf() === other;
+
+    if (!options)
+        options = {};
+    var ignore = options.ignore; // array of fields to ignore
+    ignore = (!ignore) ? {} : (ignore instanceof Array) ? ignore.toObjectKeys(1) : ignore;
+
     // ok, $other is an object too, we must have all its properties
-    for (p in other) {
-        if (!(p in this))
+    for (var p in other) {
+        if (!ignore[p] && !(p in this))
             return false;
     }
 
-    for(var p in this) {
+    for(p in this) {
+        if (ignore[p]) continue;
         // it must have all our properties
         if (!(p in other)) return false;
         var mine = this[p];
@@ -889,7 +952,17 @@ Object.extend('_same', function(other, strict){
         if (strict && typeof mine !== typeof its) return false; // type check in strict mode
         switch (typeof mine) {
             case 'object':
-                if (!mine._same(its, strict))
+                if (mine===null)
+                    if (its===null) break;
+                    else return false;
+                else
+                    if (its===null)
+                        return false;
+                if (mine instanceof Date)
+                    if (its instanceof Date && +mine===+its) break;
+                    else return false;
+                if (mine instanceof Array && mine.length!==its.length
+                || !mine._same(its, strict))
                     return false;
                 break;
             case 'function':
@@ -942,8 +1015,10 @@ Object.extend('_flatten', function(separator, maxDepth, prefix){
     for (var k in this) {
         var v = this[k];
         if (prefix) k = prefix+separator+k;
-        if (maxDepth && v instanceof Object) v._flatten(separator, maxDepth-1, k, ret);
-        else ret[k] = v;
+        if (maxDepth && v instanceof Object && v._isBaseObject())
+            v._flatten(separator, maxDepth-1, k, ret);
+        else
+            ret[k] = v;
     }
     return ret;
 }); // Object._flatten
@@ -968,7 +1043,7 @@ Object.extend('_invert', function(){
     return ret;
 }); // Object._invert
 
-/* search for values that will meet $condition, recurring on keys. It's mainly an utility for debugging.
+/* search for values that will meet $condition, recurring on keys.
  * Returns an object with findings and the keys are paths.
  * $condition(json|lambda|function)
  * $options(optional|object) supports
@@ -1018,7 +1093,7 @@ Object.extend('_find', function(condition, options){
 
     // search inside
     noRecur.push(this);
-    var tout = tryGet(options,'timeout',1000);
+    var tout = options.timeout||1000;
     for (var k in this) {
         if (tout && ((new Date()-carryOn.start) > tout)) {
             if (!res._ERROR) res._ERROR = { msg:'timeout', path:path, obj:this };

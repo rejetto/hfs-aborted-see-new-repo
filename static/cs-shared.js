@@ -47,3 +47,10 @@ exports.getPicURI = function(file) { return "/~/pics/"+file+".png"; }
 
 exports.isString = function(v) { return typeof v === 'string' }
 exports.isFunction = function(v) { return v instanceof Function }
+exports.isArray = function(v) { return v instanceof Array }
+
+exports.isEmpty = function(v) {
+    return !v
+        || isArray(v) && !v.length
+        || v instanceof Object && v._isEmpty()
+} // isEmpty
