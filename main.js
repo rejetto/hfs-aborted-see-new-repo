@@ -6,12 +6,15 @@ debug();
 
 GLOBAL.vfs = new vfsLib.Vfs();
 
+//vfs.writeTo('C:\\temp\\test');
 //vfs.readFrom('C:\\temp\\test');
 
-vfs.root.set('C:\\music', function(err,node){
+vfs.root.set('C:\\music', function(err){
     assert(!err);
-    node.add('archive', L('$2.add("3")'));
-    //vfs.writeTo('C:\\temp\\test');
+    this.add('archive', function(err){
+        assert(!err);
+        this.add("3");
+    });
 });
 //vfs.root.set('C:\\vedere')//.add('c:\\data\\pics\\fantasy');
 //vfs.root.add('C:\\temp');
@@ -19,7 +22,7 @@ vfs.root.set('C:\\music', function(err,node){
 
 
 GLOBAL.fileServer = require('./file-server');
-fileServer.start({ port:80, ip:'0.0.0.0' });
+fileServer.start({ port:81, ip:'0.0.0.0' });
 
 GLOBAL.adminServer = require('./admin-server');
 adminServer.start({ port:88, ip:'127.0.0.1' });
