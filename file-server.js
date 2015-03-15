@@ -12,11 +12,11 @@ exports.start = function(listenOn, cb) {
     try {
         srv.listen(listenOn.port, listenOn.ip, function onListen(){
             dbg('listening on port '+listenOn.port);
-            cb(null);
+            cb && cb(null);
         });
     }
     catch(e){
-        cb(e);
+        cb && cb(e);
     }
 };
 
