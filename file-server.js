@@ -6,12 +6,18 @@ var http = require('http');
 var serving = require('./lib/serving');
 var listeningOn; // keep track of the tcp coordinates we are currently accepting requests
 
-exports.start = function(listenOn) {
+exports.start = function(listenOn, cb) {
     listeningOn = listenOn;
     exports.listeningOn = listeningOn;
-    srv.listen(listenOn.port, listenOn.ip, function onListen(){
-        dbg('listening on port '+listenOn.port);
-    });
+    try {
+        srv.listen(listenOn.port, listenOn.ip, function onListen(){
+            dbg('listening on port '+listenOn.port);
+            cb(null);
+        });
+    }
+    catch(e){
+        cb(e);
+    }
 };
 
 // Set up the HTTP server
