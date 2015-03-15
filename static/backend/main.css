@@ -1,6 +1,7 @@
 body { font:10pt verdana, arial, sans-serif; }
 a img { border:0; } /* conform IE */
 #vfs { -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+#vfs { display:inline-block; } /* when a node is selected, it's nicer to see the highlighting span for the minimum necessary width instead of whole screen */
 #vfs ul { list-style:none; padding:0; }
 #vfs ul ul { list-style:none; padding-left:3em; }
 #vfs li { border:2px solid transparent; padding:0.1em 0.2em }
