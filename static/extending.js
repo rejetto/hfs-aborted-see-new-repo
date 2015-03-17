@@ -10,6 +10,18 @@ if (!GLOBAL.assert)
 
 GLOBAL.L = lmbd;
 
+function isArray(v){ return Array.isArray(v); }
+function isFunction(v){ return typeof v==='function'; }
+function isDateObject(v){ return getConstructorName(v)==='Date' }
+
+function getConstructorName(o) {
+    return typeof o==='object' && getFunctionName(o.constructor);
+}
+
+function getFunctionName(f){
+    return typeof f==='function' && (f.name || (f=/function\s*(\S+?)\s*\(/.exec(f+'')) && f[1]);
+}
+
 /**
  * Build a function made by an expression. All exceptions in it are catched and undefined is returned.
  * First parameter can be accessed directly as "$1" (and so on), or with single capital letters (that will be passed in alphabetical order, not by appearance).
@@ -23,7 +35,7 @@ function lmbd(f, inject) {
     if ((typeof f)._among('undefined','function')) return f; // already a function
     if (typeof f != 'string') return function(){ return f }; // anything that's not a string is returned as a "constant" function
     // efficient support for inner lambda functions, defined by the literal L"expression". We must do this before the rest, so the inner simbols don't get parsed by this level.
-    var inners = f.match(/L(['"])[^'"]+\1/g); // parse
+    var inners = f.match(/L(['"]).+?\1/g); // parse
     if (inners) {
         var innerLambdas = [];
         for (var a=inners, i=0; i<a.length; i++) {
@@ -46,10 +58,10 @@ function lmbd(f, inject) {
         if (!inject) inject = arguments.callee.caller.arguments._castToArray().first(L('A===P0 && this[B+1]',f)); // Pvars are defined but $inject was not passed: try to access it through the callers' parameters
         if (inject) {
             injectVars.push('P0=inject');
-            if (inject instanceof Array) injectVars.append(pVars.unique().removeItems('P0').map('A+"=P0["+(A[1]-1)+"]"')); // P1 will access first item of P0, and so on...
+            if (isArray(inject)) injectVars.append(pVars.unique().removeItems('P0').map('A+"=P0["+(A[1]-1)+"]"')); // P1 will access first item of P0, and so on...
         }
     }
-    if (inject instanceof Object && !(inject instanceof Array))  // explode the object into the local scope
+    if (typeof inject==='object' && !'P0'._among(pVars) && !isArray(inject))  // explode the object into the local scope
         injectVars.append(inject._mapToArray('$2+"=inject."+$2'));
     injectVars = injectVars.length ? 'var '+injectVars+';' : '';
 
@@ -60,20 +72,35 @@ function lmbd(f, inject) {
         f = f.replace(/@(?:([a-zA-Z])|(.)|$)/g, function(all,letter,other,pos){ return inString(pos) ? all : (letter) ? 'this.'+letter : 'this'+(other||'') });
     }
 
-    f = '(function(){ '+injectVars+' return (function('+pars+'){ try { '+localVars+' return '+f+' } catch(e){} }) })()';
+    f = localVars+' return '+f;
+    if (lmbd.catchNext===false || lmbd.catch===false) // you may not want this feature
+        delete lmbd.catchNext;
+    else
+        f = 'try { '+f+' } catch(e){}';
+    f = '(function(){ '+injectVars+' return (function('+pars+'){ '+f+' }) })()';
     try { return eval(f) }
     catch(e) {
         if (e instanceof SyntaxError)
-            log('SyntaxError in lambda: '+arguments[0]);
+            console.error('SyntaxError in lambda: '+arguments[0]);
         throw e;
     }
 }// lmbd
+
+/////////////// MATH
+
+Math.logg = function(n, base){ return Math.log(n) / Math.log(base) };
+Math.LN2 = Math.log(2);
+Math.log2 = function(n){ return Math.log(n) / Math.LN2 };
+Math.LN10 = Math.log(10);
+Math.log10 = function(n){ return Math.log(n) / Math.LN10 };
+Math.LN16 = Math.log(16);
+Math.log16 = function(n){ return Math.log(n) / Math.LN16 };
 
 /////////////// FUNCTION
 
 Function.prototype.extend = function(key, value) {
     var pr = this.prototype;
-    var a = (key instanceof Array ? key : [key]);
+    var a = (isArray(key) ? key : [key]);
     for (var i=a.length; i--;) {
         Object.defineProperty(pr, a[i], {
             enumerable: false,
@@ -115,11 +142,29 @@ Function.extend('bind_', function(){
     };
 }); // Function.bind
 
+// as bind, but with arguments as array (similar to Function.apply)
+Function.extend('bindA', function(scope,args){
+    var fun = this;
+    return function(){
+        fun.apply(scope, args.concat(arguments._castToArray()));
+    };
+}); // Function.bindA
+
+Function.extend('for', function(form, iterator){
+    if (arguments.length===1)
+        iterator=form, form='';
+    assert(!form, 'not supported yet');
+    if (isArray(iterator))
+        iterator.forEach(this);
+    else
+        iterator._for(this);
+});//for
+
 /////////////// ARRAY
 
 Array.prototype.forEach ||
 Array.extend('forEach', function(fun) {
-    if (typeof fun != "function")
+    if (!isFunction(fun))
         throw new TypeError();
     for (var i=0, l=this.length; i<l; ++i) {
         fun.call(this[i], this[i], i, this);
@@ -145,7 +190,7 @@ Array.extend('remap', function(cb){
     }
     if (filter) this.removeItems();
     return this;
-});
+}); // Array.remap
 
 // like remap(), but recursively over arrays and objects
 Array.extend('remapRecur', function(cb){
@@ -155,27 +200,29 @@ Array.extend('remapRecur', function(cb){
         if (w !== undefined) {
             this[i] = v = w;
         }
+        if (!v || typeof v!=='object')
+            continue;
         if (v.remapRecur) {
             v.remapRecur(cb);
         }
-        else if (typeof v == 'object') {
+        else if (v._remapRecur) {
             v._remapRecur(cb);
         }
     }
     return this;
-});
+}); // Array.remapRecur
 
 // array values become the keys, and you pass the values as parameter (in case of a function is treated as a callback, use noCB to change this behaviour)
 Array.extend('toObjectKeys', function(val, noCB){
     var ret = {};
     for (var i= 0, n=this.length; i<n; i++) {
         var k = this[i];
-        ret[k] = (val instanceof Function && !noCB) ? val(k,i,this) : val; // yes, if you don't pass it you'll get undefined. Acceptable.
+        ret[k] = (isFunction(val) && !noCB) ? val(k,i,this) : val; // yes, if you don't pass it you'll get undefined. Acceptable.
     }
     return ret;
-}); // toObjectKeys
+}); // Array.toObjectKeys
 
-/* create an object, the keys are provided by the callback, and the values are the array values.
+/* create an object, the keys are provided by the callback, and the values are the array's values.
  If you want to provide the whole pair key/value, you can return an array [key,value], or an object {key:value}.
  Please note in this latter case, you may provide as many pairs you want.
  */
@@ -184,15 +231,49 @@ Array.extend('toObject', function(cb/*v,k*/){
     var ret = {};
     for (var i= 0, n=this.length; i<n; i++) {
         var v = cb.call(this, this[i], i, this);
-        if (v instanceof Array && v.length>=2) ret[v[0]] = v[1];
-        else if (v instanceof Object) ret._expand(v);
-        else ret[v] = this[i];
+        if (isArray(v) && v.length>=2) ret[v[0]] = v[1];
+        else if (typeof v==='object') ret._expand(v);
+        else if (v!==undefined) ret[v] = this[i];
     }
     return ret;
-});
+}); // Array.toObject
+
+/* create an object, the keys are provided by the callback, and the values are the array values sharing the same key.
+   If the callback starts with a '.' then it is considered a key of the array item where to retrieve the key for the result.
+   Options: 'delete' will remove the property from the child object. 'minus' is as 'delete' but will work on a cloned object.
+ */
+Array.extend('groupBy', function(cb/*v,k*/, options){
+    assert(cb, 'bad args');
+    var ret = {};
+    options = options||{};
+    if (typeof options==='string')
+        options = options.split(',').toObjectKeys(true);
+    cb = L(cb);
+    for (var i= 0, n=this.length; i<n; i++) {
+        var v = this[i];
+        var k = cb.call(this, v, i, this);
+        if (options.delete)
+            delete v[k];
+        else if (options.minus)
+            v = v._minus(k);
+        if (k in ret)
+            ret[k].push(v);
+        else
+            ret[k] = [v];
+    }
+    return ret;
+}); // Array.groupBy
+
+// like map, but values are unique.
+Array.extend('collect', function(cb){
+    var ret = [];
+    cb = isString(cb) ? L('P1.addUnique('+cb+')', [ret]) : L('P1.addUnique(P2(A))', [ret, cb]);
+    this.forEach(cb);
+    return ret;
+}); // Array.collect
 
 // all Array methods with a callback parameter will accept also a string that will be converted to function via L()
-['toObject','toObjectKeys','remapRecur','map','every','filter','reduce','reduceRight','some'].forEach(function(k){
+['toObject','remapRecur','map','every','filter','reduce','reduceRight','some'].forEach(function(k){
     var old = Array.prototype[k];
     Array.extend(k, function(){
         var a = arguments._castToArray();
@@ -217,18 +298,41 @@ Array.extend('toObject', function(cb/*v,k*/){
  */
 (function(){
     var old = Array.prototype.sort;
-    Array.extend('sort', function(f){
-        if (typeof f == 'string' && (f[0]==='.' || f[0]==='[')) {
-            if (f.ss(-1) === '!') {
+
+    function convert(cond){
+        if (typeof cond == 'string' && (cond[0]==='.' || cond[0]==='[')) {
+            if (cond.ss(-1) === '!') {
                 var invert = true;
-                f = f.ss(0, -1); // remove character
+                cond = cond.ss(0, -1); // remove character
             }
-            f = 'A{0}<B{0} ? -1 : A{0}>B{0} ? +1 : 0'.x(f);
-            if (invert) f = '-('+f+')';
+            cond = 'A{0}<B{0} ? -1 : A{0}>B{0} ? +1 : 0'.x(cond);
+            if (invert) cond = '-('+cond+')';
         }
-        f = L(f);
-        return old.call(this,f);
-    })
+        return cond;
+    }
+
+    Array.extend('sort', function(cond){
+        if (isArray(cond)) { // array of conditions
+            cond.remap(convert); // treat one by one, trying to get lambdas
+            if (cond.every('typeof A==="string"')) { // all lambdas, optimization is possible
+                cond = '('+cond.join(' )||( ')+')';
+            }
+            else {
+                var conds = cond.remap(L);
+                cond = function(a,b){
+                    for (var i=0; i<conds.length; i++) {
+                        var v = conds[i](a,b);
+                        if (v) return v;
+                    }
+                    return 0;
+                };
+            }
+        }
+        else
+            cond = convert(cond);
+        cond = L(cond);
+        return old.call(this,cond);
+    }); // Array.sort
 })();
 
 // as indexOf, but items are tested by a callback instead
@@ -240,8 +344,12 @@ Array.extend('search', function(cb, ofs){
     return -1;
 }); // Array.search
 
-Array.extend('insert', function(idx, item){
-    this.splice(idx,0,item);
+Array.extend('insert', function(idx, item, treatArrayAsSingleItem){
+    if (!isArray(item) || treatArrayAsSingleItem)
+        this.splice(idx,0,item);
+    else
+        for(var i=item.length; i--;)
+            this.splice(idx,0,item[i]);
     return this;
 }); // Array.insert
 
@@ -270,9 +378,14 @@ Array.extend('first', function(cb){
 Array.extend('remove', function(from, to) {
     if (from < 0) from += this.length;
     if (to < 0) to += this.length;
-    this.splice(from, to ? to-from+1 : Infinity);
+    this.splice(from, to===undefined ? 1 : to-from+1);
     return this;
 }); // Array.remove
+
+// removes all elements from this array
+Array.extend('empty', function() {
+    return this.remove(0,Infinity);
+}); // Array.empty
 
 // remove any occurrence of the specified parameter. If an array is supplied, its single values are considered.
 Array.extend('removeItems', function(it, returnRemoved) {
@@ -281,7 +394,7 @@ Array.extend('removeItems', function(it, returnRemoved) {
     var n = 0; // counter of items to delete at cursor position
     var removed = [];
     while (i--) {
-        if (it instanceof Function ? it.call(this, this[i], i) : (this[i] === it || it instanceof Array && it.contains(this[i]))) {
+        if (isFunction(it) ? it.call(this, this[i], i) : (this[i] === it || isArray(it) && it.contains(this[i]))) {
             n++;
         }
         else if (n) {
@@ -298,22 +411,23 @@ Array.extend('removeItems', function(it, returnRemoved) {
 // keeps only elements that appears in the $otherArray
 Array.extend('intersect', function(otherArray) {
     if (!otherArray) return this;
-    assert(otherArray instanceof Array, 'bad args');
+    assert(isArray(otherArray), 'bad args');
     return this.removeItems(L('!P0.contains(A)',otherArray));
 }); // Array.intersect
 
 // as intersect, but returns a new array
 Array.extend('commonWith', function(otherArray) {
     if (!otherArray) return [];
-    assert(otherArray instanceof Array, 'bad args');
+    assert(isArray(otherArray), 'bad args');
     return this.filter('P0.contains(A)',otherArray);
 }); // Array.commonWith
 
 Array.extend('clone', function(deep) {
     var v = this.slice();
-    if (deep) {
-        v.remap('A instanceof Array ? A.clone() : A instanceof Object ? A._clone() : A');
-    }
+    if (deep)
+        v.remap(function(v){
+            return (v && typeof v==="object") ? v._clone(true) : v
+        });
     return v;
 }); // Array.clone
 
@@ -327,7 +441,7 @@ Array.extend('unique', function() {
 });
 
 Array.extend('addUnique', function(v){
-    if (!(v instanceof Array)) v = [v];
+    if (!(isArray(v))) v = [v];
     for (var i=0, n=v.length; i<n; i++) {
         if (!this.contains(v[i])) this.push(v[i]);
     }
@@ -336,23 +450,38 @@ Array.extend('addUnique', function(v){
 
 Array.extend('contains', function(v) { return this.indexOf(v) >= 0 });
 
-Array.extend('last', function(){
-    return this.length ? this[this.length-1] : undefined
-});
-
-Array.extend('for', function(cb, inject){
-    if (!cb) return this;
-    cb = L(cb, inject);
-    if (cb.length > 1) {
-        for (var i= 0, last=this.length-1; i<=last; i++) {
-            if (cb.call(this, this[i], i, i===last) === false) break;
-        }
+// return last element accepted by the callback. In case of non-boolean returned value, the value is returned instead of the element. If no argument is provided, it will just return the last item of the array
+Array.extend('last', function(cb){
+    if (!arguments.length)
+        return this.length ? this[this.length-1] : undefined;
+    cb = L(cb);
+    for (var i=this.length; i--;) {
+        var res = cb.call(this, this[i], i);
+        if (res) return res===true ? this[i] : res;
     }
-    else {
+}); // Array.last
+
+Array.extend('for', function(cb){
+    if (!cb) return this;
+    cb = L(cb);
+    if (cb.length < 2)
         this.forEach(cb);
+    else // wants the "isLast" parameter
+        for (var i= 0, last=this.length-1; i<=last; i++)
+            cb.call(this, this[i], i, i===last)
+    return this;
+});//for
+
+// this version can break the loop if the callback returns false, and in case returns false in turn
+Array.extend('forr', function(cb){
+    if (!cb) return this;
+    cb = L(cb);
+    for (var i= 0, last=this.length-1; i<=last; i++) {
+        if (cb.call(this, this[i], i, i===last) === false)
+            return false;
     }
     return this;
-});
+});//forr
 
 Array.extend('move', function(from, to) {
     this.splice(to, 0, this.splice(from, 1)[0]);
@@ -360,7 +489,7 @@ Array.extend('move', function(from, to) {
 }); // Array.move
 
 Array.extend('replace', function(other) {
-    if (other instanceof Array) {
+    if (isArray(other)) {
         this.splice.apply(this, [0,Infinity].concat(other));
     }
     return this;
@@ -368,7 +497,7 @@ Array.extend('replace', function(other) {
 
 // like concat() but affects this instance
 Array.extend('append', function(other) {
-    if (other instanceof Array) {
+    if (isArray(other)) {
         for (var i=0, a=other, n=a.length; i<n; i++) {
             this.push(a[i]);
         }
@@ -383,7 +512,7 @@ Array.extend('append', function(other) {
 Array.make = function(n, v) {
     var ret = [];
     ret.length = n;
-    if (v instanceof Function)
+    if (isFunction(v))
         ret.remap(v);
     else for (var i=0; i<ret.length; i++)
         ret[i] = v;
@@ -392,8 +521,8 @@ Array.make = function(n, v) {
 
 // like append() but put items in front
 Array.extend('prepend', function(other) {
-    if (other instanceof Array) {
-        for (var i=0, a=other, n=a.length; i<n; i++) {
+    if (isArray(other)) {
+        for (var a=other, i=a.length; i--;) {
             this.unshift(a[i]);
         }
     }
@@ -402,6 +531,30 @@ Array.extend('prepend', function(other) {
     }
     return this;
 }); // Array.prepend
+
+Array.extend('mapStrings', function(tpl, join) {
+    var ret = this.map(L('P1.x(A)',[tpl]));
+    if (typeof join === 'string')
+        ret = ret.join(join);
+    return ret;
+}); // Array.mapStrings
+
+Array.extend('pad', function(length, content) {
+    length -= this.length;
+    if (length > 0)
+        this.append(Array.make(length, content));
+    return this;
+}); // Array.pad
+
+// return an object mapping different values to the number of times they appear in the array. This requires values to be strings, or meaningfully string-castable.
+Array.extend('frequency', function(){
+    var ret = {};
+    for (var i= 0, n=this.length; i!==n; i++) {
+        var v = this[i];
+        ++ret[v];
+    }
+    return ret;
+}); // Array.frequency
 
 /////////////// STRING
 
@@ -423,8 +576,8 @@ String.extend(['format','x'], function(){
         for (var i=0, a=key.split('.'), n=a.length; ret && i<n; i++) {
             var k = a[i];
             if (i==0 && isNaN(parseInt(k))) ret = args[0]; // if {key} it doesn't start with a number, then it's equivalent to {0.key}
-            var next = ret[k];
-            ret = (next instanceof Function) ? next.call(ret) : next;
+            var next = ret && ret[k];
+            ret = isFunction(next) ? next.call(ret) : next;
         }
         if (parameter && ret) {
             var v;
@@ -432,11 +585,16 @@ String.extend(['format','x'], function(){
                 ret = String(ret);
                 ret = ret.substring(v[1]-1 || 0, v[2] || ret.length) // extract the substring in range
             }
-            else if (v = /ƒ ?(.+)/.exec(parameter)) { // lambda syntax
-                ret = L(v[1])(ret);
+            else if (v = /L (.+)/.exec(parameter)) { // lambda syntax
+                v = L(v[1]).call(ret,ret);
+                ret = isFunction(v) ? v.call(ret,ret) : v; // a function will automatically be applied to the content
             }
-            else if ((v=GLOBAL[parameter]) instanceof Function) { // global function
-                ret = v(ret);
+            else { // global function?
+                try { v=eval('GLOBAL.'+parameter) }
+                catch(e){}
+                if (isFunction(v)) {
+                    ret = v(ret);
+                }
             }
         }
         return (ret === undefined) ? (me.skipUndefined ? whole : '')
@@ -473,8 +631,8 @@ String.extend('capital', function(){
     if (v[1] < 'a') v = v.low(); // examine last letter to see if the string is all caps
     return v[0].up()+v.slice(1);
 });
-String.extend('includeLeading', function(sub) { return this.startsWith(sub) ? this : sub+this });
-String.extend('includeTrailing', function(substring) { return this.endsWith(substring) ? this.toString() : this+substring });
+String.extend('includeLeading', function(sub) { return (this.startsWith(sub) ? '' : sub)+this });
+String.extend('includeTrailing', function(substring) { return this+(this.endsWith(substring) ? '' : substring) });
 // if in the following function the casting to string is not made, the resulting typeof is 'object' instead of 'string' (causing problems in some cases, e.g. using path.join)
 String.extend('excludeLeading', function(sub) { return this.startsWith(sub) ? this.slice(sub.length) : ''+this });
 String.extend('excludeTrailing', function(sub) { return this.endsWith(sub) ? this.slice(0,-sub.length) : ''+this });
@@ -529,10 +687,6 @@ String.extend('escapeRegExp', function() {
 
 String.extend('till', function(pattern){ return this.ss(0, 1+this.indexOf(pattern)) });
 
-String.extend('toDate', function(){ return renderers.date(this) });
-String.extend('toDateTime', function(){ return renderers.datetime(this) });
-String.extend('toTime', function(){ return renderers.time(this) });
-
 /* Split the string on separator substring, but only up to $max pieces.
  * Differently from calling split(separator, max), the rest of the string is not discarded but left glued in the last token.
  * Returns:
@@ -543,10 +697,9 @@ String.extend('toTime', function(){ return renderers.time(this) });
  *         values will be filled with $padding, unless it's a function, in that case the value is calculated using
  *         the function, which is called passing following parameters:
  *             1) the array that will be returned by splitMax
- *             2) current length of the first parameter. Of course you could just calculate this parameter from the first
- *                parameter. This is both a convenience and a way to optimize: if your function will take just one parameter
- *                then it will be called just once, and its value duplicated for every padded element. When the second
- *                parameter is accepted instead, the function will be called for every padded element.
+ *             2) current length of the array (first parameter). If the callback is defined to accept only one parameter
+ *                then it will be called just once, and its value duplicated for every padded element. Otherwise the function
+ *                will be called for every padded element.
  */
 String.extend('splitMax', function(separator, max, padding){
     assert(separator && max, 'bad args');
@@ -560,11 +713,12 @@ String.extend('splitMax', function(separator, max, padding){
     }
     ret.push(s);
     if (max && padding !== undefined) {
-        // optimization: the function doesn't care the the index (second parameter), so we can calculate it only once
-        if (padding instanceof Function && padding.length < 2) padding = padding(ret);
+        // optimization: the function doesn't care of the index (second parameter), so we can calculate it only once
+        if (isFunction(padding) && padding.length < 2)
+            padding = padding(ret);
         // do the padding
         while (max--) {
-            ret.push( padding instanceof Function ? padding(ret, ret.length) : padding );
+            ret.push( isFunction(padding) ? padding(ret, ret.length) : padding );
         }
     }
     return ret;
@@ -576,12 +730,17 @@ String.extend('count', function(sub) {
     return this.split(sub).length-1;
 });
 
+String.extend('quote', function(open,close) {
+    return (open||'"')+this+(close||open||'"');
+});
+
 /////////////// NUMBER
 
 Number.extend('for', function(cb/*index,isLast*/){
     cb = L(cb);
-    var n = this;
-    for (var i=0; i<n; i++) cb(i, i===n);
+    var n = this-1;
+    for (var i=0; i<=n; i++)
+        cb(i, i===n);
 });
 
 ////////////// REGEXP
@@ -596,7 +755,17 @@ RegExp.extend('multiExec', function(s){
 
 RegExp.csv = function(subexp,sep){
     return subexp && RegExp('^(?![ ,])(('+(sep||' *, *')+'|^)('+(subexp.source||subexp)+'))*$')
-};
+};//csv
+
+RegExp.escape = function(str){
+    return str.replace(/([-()\[\]{}+?*.$\^|,:#<!\\])/g, '\\$1').replace(/\x08/g, '\\x08');
+};//RegExp.escape
+
+RegExp.not = function(values, flags) {
+    if (isString(values))
+        values = [values];
+    return new RegExp('^(?!('+values.map('isString(A) ? RegExp.escape(A) : A.source').join('|')+')$)', flags)
+};//RegExp.not
 
 /////////////// DATE
 
@@ -618,6 +787,9 @@ Date.extend('plus', function(ms){
 Date.extend('elapsed', function(unit, since){
     return ((since||Date.now())-this)/(unit||1)
 });
+Date.extend('same', function(other){
+    return +this === +other;
+});
 Date.elapsed = function(since, unit){
     return Date.now()-since/(unit||1);
 }
@@ -632,7 +804,7 @@ Object.extend('_remove', function(keys, returnRemoved) {
     if (typeof keys == 'string' && keys[0]===',') {
         keys = keys.split(',').slice(1);
     }
-    else if (!(keys instanceof Array)) keys = [keys];
+    else if (!(isArray(keys))) keys = [keys];
     var ret = {};
     for (var i=keys.length; i--;) {
         var k = keys[i];
@@ -645,15 +817,21 @@ Object.extend('_remove', function(keys, returnRemoved) {
 
 // transfer some properties from another object
 Object.extend('_steal', function(other, keys) {
-    return this._expand(other._remove(keys, true));
+    return this._expand(other && other._remove(keys, true));
 }); // Object._steal
+
+// get and delete the value of a key
+Object.extend('_pop', function(key) {
+    return (key in this) ? this._remove(key,true)[key] : undefined;
+}); // Object._pop
 
 // filter properties of this object, leaving only some of them. Accepted: array of keys, callback(value,key), string(lambda expression), string(csv starting with a comma to distinguish from lambda)
 Object.extend('_filter', function(what) {
-    if (typeof what == 'string') {
+    if (arguments.length === 0)
+        what = L('A');
+    else if (typeof what == 'string')
         what = (what.startsWith(',')) ? what.ss(1).split(',') : L(what);
-    }
-    if (what instanceof Array) {
+    if (isArray(what)) {
         var arr = what; // need closure
         what = function(v,k){ return arr.contains(k) };
     }
@@ -669,13 +847,13 @@ Object.extend('_filter', function(what) {
 Object.extend('_filterCopy', function(what) {
     if (typeof what == 'string' && what.startsWith(','))
         what = what.ss(1).split(',');
-    return (what instanceof Array) ? this._map('P0.contains(B) && A ||SKIP', what)
+    return (isArray(what)) ? this._map('P0.contains(B) && A ||SKIP', what)
         : this._map('({0}) && A ||SKIP'.x(what))
 }); // Object._filterCopy
 
-// return first element accepted by the callback. In case of non-boolean returned value, the value is returned instead of the element.
+// return first element accepted by the callback. In case of non-boolean returned value, the value is returned instead of the element. If not callback is provided, the first element is returned.
 Object.extend('_first', function(cb){
-    cb = L(cb);
+    cb = L(cb||true);
     for (var i in this) {
         var res = cb.call(this, this[i], i);
         if (res) return res===true ? this[i] : res;
@@ -688,31 +866,31 @@ Object.extend('_clone', function(properties, deep){
         deep = true;
         properties = undefined;
     }
-    if (!properties) {
-        return (this instanceof Array) ? this.clone(deep)
-            : (this instanceof Date) ? new Date(this)
-            : (this instanceof Function) ? this
-            : deep ? ({})._expand(this)._remap('A instanceof Object ? A._clone(true) : A')
-            : ({})._expand(this);
-    }
-    var ret = {};
-    if (properties instanceof Function) {
-        var cb = properties;
-        for (var k in this) {
-            if (cb.call(this,this[k],k,this)) {
-                ret[k] = this[k];
+    switch (getConstructorName(this)) {
+        case 'Date': return new Date(this);
+        case 'Array': return this.clone(deep);
+        default:
+            var ret = {};
+            if (isFunction(properties)) {
+                var filter = properties;
+                properties = undefined;
             }
-        }
-        return ret;
+            if (!properties)
+                properties = this._keys();
+            else if (typeof properties == 'string')
+                properties = properties.split(',').intersect(this._keys());
+
+            for(var i=0, n=properties.length; i!==n; i++) {
+                var k = properties[i];
+                var v = this[k];
+                if (filter && !filter.call(this,v,k,this))
+                    continue;
+                if (deep && v && typeof v==='object')
+                    v =  v._clone(true);
+                ret[k] = v;
+            }
+            return ret;
     }
-    if (typeof properties == 'string') properties = properties.split(',');
-    for (var a=properties, i=a.length; i--;) {
-        var k = a[i];
-        if (k in this) {
-            ret[k] = this[k];
-        }
-    }
-    return ret;
 }); // Object._clone
 
 // returns a new object made by merging this and another
@@ -720,7 +898,7 @@ Object.extend('_plus', function(another){ return this._clone()._expand(another) 
 
 // returns a new object made by removing some keys from this
 Object.extend('_minus', function(keys){
-    return this._clone(this._keys().removeItems(keys instanceof Array ? keys : keys.split(',')))
+    return this._clone(this._keys().removeItems(isArray(keys) ? keys : keys.split(',')))
 }); // Object._minus
 
 Object.extend('_expand', function(another, keys){
@@ -728,13 +906,12 @@ Object.extend('_expand', function(another, keys){
         case 'object':
             if (keys) another = another._clone(keys);
             if (another === null) break;
-            if (GLOBAL.Ext) Ext.apply(this, another)
-            else if (GLOBAL.jQuery) jQuery.extend(this, another)
-            else if (GLOBAL.ceLib) ceLib.extend(this, another)
-            else throw 'N/A';
+            for (var k in another)
+                this[k] = another[k];
             break;
         case 'string':
-            this[another] = arguments[1];
+            if (arguments.length>1)
+                this[another] = arguments[1];
             break;
         case 'undefined':
         case 'boolean':
@@ -770,9 +947,9 @@ Object.extend('_values', function(filter){
     }
     for (var i in this) {
         if (!this.hasOwnProperty(i)
-        || filter instanceof Function && !filter.call(this,this[i],i,this)
-        || filter instanceof Array && !filter.contains(i)
-        || filter instanceof Object && !filter[i]) continue;
+        || isFunction(filter) && !filter.call(this,this[i],i,this)
+        || isArray(filter) && !filter.contains(i)
+        || typeof filter==='object' && !filter[i]) continue;
         res.push(this[i]);
     }
     return res;
@@ -785,13 +962,23 @@ Object.extend('_isEmpty', function () {
 
 Object.extend('_for', function(cb) {
     cb = L(cb);
+    for (var k in this )
+        if (this.hasOwnProperty(k))
+            cb.call(this, this[k], k);
+    return this;
+}); // Object._for
+
+// this version can break the loop if the callback returns false, and in case returns false in turn
+Object.extend('_forr', function(cb) {
+    cb = L(cb);
     for (var k in this ) {
         if (this.hasOwnProperty(k)) {
-            if (cb.call(this, this[k], k) === false) break;
+            if (cb.call(this, this[k], k) === false)
+                return false;
         }
     }
     return this;
-}); // Object._for
+}); // Object._forr
 
 // returns a new object with same keys but mapped values
 Object.extend('_map', function(cb/*v,k*/){
@@ -815,12 +1002,14 @@ Object.extend('_mapKeys', function(cb/*v,k*/){
     for (var k in this) {
         var v = this[k];
         if (map) {
-            ret[k in map ? map[k] : k] = v;
+            k = (k in map) ? map[k] : k;
+            if (k || k==='') // falsish (except for '') will remove the key
+                ret[k] = v;
             continue;
         }
         v = cb.call(this, v, k);
         if (filter && !v) continue;
-        if (v instanceof Array) ret[ v[0] ] = v[1];
+        if (isArray(v)) ret[ v[0] ] = v[1];
         else ret._expand(v);
     }
     return ret;
@@ -831,11 +1020,12 @@ Object.extend('_mapToArray', function(cb/*v,k*/){
     var filter = (typeof cb==='string' && cb.endsWith('||SKIP'));
     cb = L(cb);
     var ret = [];
+    var idx = 0;
+    var last = this._count()-1;
     for (var k in this) {
-        try {
-            var v = cb.call(this, this[k], k)
-            if (!filter || filter && v) ret.push(v);
-        }catch(e){}
+        var v = cb.call(this, this[k], k, idx, idx===last)
+        if (!filter || filter && v) ret.push(v);
+        idx++;
     }
     return ret;
 }); // Object._mapToArray
@@ -859,8 +1049,9 @@ Object.extend('_remapRecur', function(cb){
     cb = L(cb);
     for (var k in this) {
         var v = cb.call(this, this[k], k);
-        if (v  === undefined) v = this[k];
+        if (v  === undefined) v = this[k]; //TODO this is different than _remap, make it even
         else this[k] = v;
+        if (!v) continue;
         if (v.remapRecur) { // arrays
             v.remapRecur(cb);
         }
@@ -881,7 +1072,7 @@ Object.extend('_remapKeys', function(cb){
     if (cb._isBaseObject()) {
         for (var old in cb) {
             var new_ = cb[old];
-            if (new_ !== null) this[new_] = this[old];
+            if (new_!==null && old in this) this[new_] = this[old];
             if (new_ === undefined) continue;
             delete this[old];
         }
@@ -891,10 +1082,10 @@ Object.extend('_remapKeys', function(cb){
     for (var k in this) {
         var v = this[k];
         var r = cb.call(this, v, k);
-        if (r instanceof Array) {
+        if (isArray(r)) {
             r = r.toObjectKeys(v, true);
         }
-        if (r instanceof Object) {
+        if (typeof r==='object') {
             if (!(k in r)) delete this[k];
             this._expand(r);
             continue;
@@ -912,7 +1103,7 @@ Object.extend('_among', function(values){
         values = arguments._castToArray();
     }
     if (!values) return false;
-    assert(values instanceof Array, 'bad args');
+    assert(isArray(values), 'bad args');
     return values.contains(this.valueOf());
 }); // Object._among
 
@@ -922,60 +1113,75 @@ Object.extend('_log', function(){
     return this.valueOf();
 });
 
-//Object.extend('_same', function(other){ return JSON.stringify(this) == JSON.stringify(other) });
-
-// $strict is true by default. Without strict comparison ""==false && 3=="3"
-Object.extend('_same', function(other, strict, options){
-    if (strict === undefined) strict = true; // default value
+// $strict is true by default. Options supported: only, ignore, strict. When strict===false comparison ""==false && 3=="3"
+Object.extend('_same', function(other, options){
     // if $other is a primitive, then try to compare with the primitive version of $this. Someone may instead like to convert $other into an object and continue, because $this may be for example a modified Number.
-    if (!(other instanceof Object))
+    if (!other || typeof other!=='object')
         return this.valueOf() === other;
 
     if (!options)
         options = {};
+    var strict = options.strict!==false;
     var ignore = options.ignore; // array of fields to ignore
-    ignore = (!ignore) ? {} : (ignore instanceof Array) ? ignore.toObjectKeys(1) : ignore;
+    ignore = (!ignore) ? {} : (isArray(ignore)) ? ignore.toObjectKeys(1) : ignore;
+    var only = options.only; // array of the only fields to watch
+    if (isArray(only))
+        only = only.toObjectKeys(1);
+    if (options.returnPath && !options.path)
+        options.path = '';
+    // these must not be passed in recursion
+    delete options.ignore;
+    delete options.only;
 
     // ok, $other is an object too, we must have all its properties
     for (var p in other) {
-        if (!ignore[p] && !(p in this))
-            return false;
+        if (!ignore[p] && (!only || only[p]) && !(p in this))
+            return options.returnPath ? p : false;
     }
 
-    for(p in this) {
+    for (p in this) {
         if (ignore[p]) continue;
+        if (only && !only[p]) continue;
         // it must have all our properties
-        if (!(p in other)) return false;
+        if (!(p in other))
+            return options.returnPath ? options.p : false;
         var mine = this[p];
         var its = other[p];
         if (mine === its) continue; // strictly equal is enough
-        if (strict && typeof mine !== typeof its) return false; // type check in strict mode
+        if (strict && typeof mine !== typeof its)
+            return options.returnPath ? p : false; // type check in strict mode
         switch (typeof mine) {
             case 'object':
                 if (mine===null)
-                    if (its===null) break;
-                    else return false;
-                else
-                    if (its===null)
-                        return false;
-                if (mine instanceof Date)
-                    if (its instanceof Date && +mine===+its) break;
-                    else return false;
-                if (mine instanceof Array && mine.length!==its.length
-                || !mine._same(its, strict))
-                    return false;
-                break;
+                    if (its===null) continue;
+                    else break;
+                else if (its===null)
+                    break;
+                if (isDateObject(mine))
+                    if (isDateObject(its) && +mine===+its) continue;
+                    else break;
+                if (isArray(mine) && mine.length!==its.length)
+                    break;
+                var v = mine._same(its, options);
+                if (v===false)
+                    break;
+                if (typeof v==='string')
+                    return p+'.'+v;
+                continue;
             case 'function':
                 if (mine.toString() !== its.toString())
-                    return false;
-                break;
+                    break;
+                continue;
             default: // primitive types
-                if (strict || mine != its) return false; // in strict mode it already failed the strict-comparison above. In loose mode we check the loose way.
+                if (strict || mine != its) // in strict mode it already failed the strict-comparison above. In loose mode we check the loose way.
+                    break;
+                continue;
         }
+        return options.returnPath ? options.path+'.'+p : false;
     }
 
     return true;
-});
+});//Object._same
 
 Object.extend('_indexOf', function(value){
     for (var k in this) {
@@ -1003,10 +1209,10 @@ Object.extend('_every', function(cb){
     return true;
 }); // Object._every
 
-Object.extend('_apply', function(cb){
-    L(cb).call(this);
+Object.extend('_do', function(cb){
+    cb && L(cb).call(this,this);
     return this;
-}); // Object._apply
+}); // Object._do
 
 Object.extend('_flatten', function(separator, maxDepth, prefix){
     if (separator === undefined) separator = '.';
@@ -1015,7 +1221,7 @@ Object.extend('_flatten', function(separator, maxDepth, prefix){
     for (var k in this) {
         var v = this[k];
         if (prefix) k = prefix+separator+k;
-        if (maxDepth && v instanceof Object && v._isBaseObject())
+        if (maxDepth && typeof v==='object' && v._isBaseObject())
             v._flatten(separator, maxDepth-1, k, ret);
         else
             ret[k] = v;
@@ -1025,6 +1231,8 @@ Object.extend('_flatten', function(separator, maxDepth, prefix){
 
 // returns an object with all items of this object, except those with same key/value in $other
 Object.extend('_diff', function(other){
+    if (!other || typeof other!=='object')
+        return this._clone();
     var ret = {};
     for (var k in this) {
         if (other[k] !== this[k])
@@ -1058,7 +1266,7 @@ Object.extend('_find', function(condition, options){
         catch(e) { condition = L(condition); }
     }
     if (condition._isBaseObject()) {
-        var serach = condition;
+        var search = condition;
         condition = function(){
             for (var k in this) {
                 if (this.hasOwnProperty(k)
@@ -1070,32 +1278,32 @@ Object.extend('_find', function(condition, options){
         };
     }
 
-    assert(condition instanceof Function, 'bad args');
+    assert(isFunction(condition), 'bad args');
     // data to carry on on recursion
     var carryOn = arguments[2];
     if (!carryOn) {
-        carryOn = { depth:0, path:'', res:{}, noRecur:[], start:new Date() };
+        carryOn = { depth:0, path:'', res:{}, already:[], start:new Date() };
         if (!options) options = {};
-        if (options.exclude && !(options.exclude instanceof Array)) {
+        if (options.exclude && !(options.isArray(exclude))) {
             options.exclude = [options.exclude];
         }
         options._expandIf({ glue:' / ' });
     }
     var path = carryOn.path;
     var res = carryOn.res;
-    var noRecur = carryOn.noRecur; // keep track of what we already worked
+    var already = carryOn.already; // keep track of what we already worked
 
     // search here
-    if (!carryOn.depth && condition.call(this, this, carryOn)) {
+    if (!carryOn.depth && condition.call(this, this, undefined, carryOn)) {
         res[path] = this;
         if (options.first) return res;
     }
 
     // search inside
-    noRecur.push(this);
-    var tout = options.timeout||1000;
+    already.push(this);
+    var timeout = ('timeout' in options) ? options.timeout : 1000;
     for (var k in this) {
-        if (tout && ((new Date()-carryOn.start) > tout)) {
+        if (timeout && ((new Date()-carryOn.start) > timeout)) {
             if (!res._ERROR) res._ERROR = { msg:'timeout', path:path, obj:this };
             return res;
         }
@@ -1103,19 +1311,20 @@ Object.extend('_find', function(condition, options){
         if (!this.hasOwnProperty(k)) continue;
         if (options.exclude && options.exclude.contains(k)) continue;
         var v = this[k];
-        if (v instanceof Object && noRecur.contains(v)) continue;
+        if (typeof v==='object' && already.contains(v)) continue;
         var subpath = (path ? path+options.glue : '')+k;
         carryOn.key = k;
         carryOn.parent = this;
-        if (condition.call(this, v, carryOn)) {
-            res[subpath] = v;
-            if (options.first) return res;
-        }
-        if (!(v instanceof Object)) continue;
         carryOn.path = subpath;
         ++carryOn.depth;
-        if (v._find(condition, options, carryOn)
-            && (options.first || res._ERROR))
+        if (condition.call(this, v, k, carryOn)) {
+            res[subpath] = v;
+            if (options.first)
+                return res;
+        }
+        if (v && typeof v==='object'
+        && v._find(condition, options, carryOn)
+        && (options.first || res._ERROR))
             return res;
         --carryOn.depth;
         carryOn.path = path; // restore
@@ -1139,10 +1348,16 @@ Object.extend('_splitKeys', function(splitter){
 }); // Object._splitKeys
 
 Object.extend('_isBaseObject', function(){
-    return this.__proto__.constructor === Object
+    return getConstructorName(this)==='Object'
 }); // Object._isBaseObject
 
-// like _expand but keys are meant to be
+/* like _expand but keys are meant to be a path (as in nested objects) to the real point where to put the value. If the path doesn't exist, all or in part, it is created.
+    @params
+        another(object): stuff to inject in 'this'
+        options(optional|object):
+            split(string): Default '.'
+            onlyNew(boolean): inject only non-existing keys. Default false.
+ */
 Object.extend('_merge', function(another, options){
     if (!options) options = {};
     else if (typeof options === 'string') options = { split:options };
@@ -1151,14 +1366,26 @@ Object.extend('_merge', function(another, options){
         var run = this;
         k.split(options.split||'.').for(function(part,i,last){
             if (last) {
-                run[part] = another[k];
+                if (!options.onlyNew || !(part in run))
+                    run[part] = another[k];
                 return;
             }
             if (!(part in run)) {
-                run[part] = {}; //
+                run[part] = {}; // make room
             }
-            run = run[part];
+            run = run[part]; // go down
         });
     }
     return this;
 }); // Object._merge
+
+// in case of an array parameter, the condition is OR'ed
+Object.extend('_is', function(constructorName){
+    var v = getConstructorName(this);
+    return isArray(constructorName) ? constructorName.contains(v) : constructorName===v;
+}); // Object._is
+
+// tranform the current object into the other (N.B. doesn't include prototypes)
+Object.extend('_replaceWith', function(other){
+    return this._filter('false')._expand(other);
+}); // Object._replaceWith
