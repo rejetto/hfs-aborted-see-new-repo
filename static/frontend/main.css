@@ -1,15 +1,15 @@
 body { font:10pt verdana, arial, sans-serif; }
 a img { border:0; } /* conform IE */
-#items { list-style:none; padding:0; }
-h2 { margin-bottom:0.3em; }
-
+#items { list-style:none; padding:0; margin-top:0.5em; }
+#folder { font-size:1.6em; font-weight:bold; }
+#folder img { height:1em; vertical-align:text-bottom; }
 #view-settings { display: inline; }
 #folder-info , #view-settings>div {
     display:inline-block;
     border-left: 5px solid #bbb;
     background-color: #eee;
     padding: 0.3em 1em;
-    margin: 0.3em;
+    margin: 0.5em 0;
     color: #777;
     line-height: 2em;
 }
