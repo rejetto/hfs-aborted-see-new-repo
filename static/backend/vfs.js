@@ -308,7 +308,7 @@ function eventHandler_vfs_keydown(ev) {
 function vfsSelect(el) {
     $('#vfs .selected').removeClass('selected');
     asLI(el).addClass('selected').scrollToMe({duration:'fast'});
-    vfsUpdateButtons();                
+    vfsUpdateButtons();
 } // vfsSelect
 
 function getSelectedItems() {
@@ -614,7 +614,7 @@ function updateDeletedItems(it, options) {
     var li = ul.children('li.deleted-items');
     if (!li.length) {  
         li = tpl.item.clone().addClass('deleted-items').prependTo(ul);
-        li.find('.icon:first').html("<img src='{0}' style='position:absolute;'><img src='{1}'>".format(getPicURI("cross"), getIconURI('folder')));
+        li.find('.icon:first').html("<img src='{0}' style='position:absolute; z-index:1; opacity:0.6;'><img src='{1}'>".format(getPicURI("cross"), getIconURI('folder')));
         setExpanded(li, false);
     }
     // update the label                
@@ -641,6 +641,7 @@ function addItemUnder(under, item, position) {
         item = {
             deleted: true,
             itemKind: item.endsWith('/') ? 'folder' : 'file',
+            nodeKind: 'temp',
             name: item.excludeTrailing('/')
         };
     }
