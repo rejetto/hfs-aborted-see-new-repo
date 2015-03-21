@@ -583,7 +583,7 @@ String.extend(['format','x'], function(){
             var v;
             if (v = /(\d*)-(\d*)/.exec(parameter)) { // range form?
                 ret = String(ret);
-                ret = ret.substring(v[1]-1 || 0, v[2] || ret.length) // extract the substring in range
+                ret = v[1] ? ret.ss(v[1]-1, v[2] || ret.length) : ret.ss(-v[2]); // extract the substring in range
             }
             else if (v = /L (.+)/.exec(parameter)) { // lambda syntax
                 v = L(v[1]).call(ret,ret);
@@ -1123,12 +1123,11 @@ Object.extend('_same', function(other, options){
         options = {};
     var strict = options.strict!==false;
     var ignore = options.ignore; // array of fields to ignore
-    ignore = (!ignore) ? {} : (isArray(ignore)) ? ignore.toObjectKeys(1) : ignore;
+    ignore = (!ignore) ? {} : isArray(ignore) ? ignore.toObjectKeys(1) : false;
+    assert(typeof ignore==='object', 'bad args');
     var only = options.only; // array of the only fields to watch
     if (isArray(only))
         only = only.toObjectKeys(1);
-    if (options.returnPath && !options.path)
-        options.path = '';
     // these must not be passed in recursion
     delete options.ignore;
     delete options.only;
@@ -1177,7 +1176,7 @@ Object.extend('_same', function(other, options){
                     break;
                 continue;
         }
-        return options.returnPath ? options.path+'.'+p : false;
+        return options.returnPath ? p : false;
     }
 
     return true;
