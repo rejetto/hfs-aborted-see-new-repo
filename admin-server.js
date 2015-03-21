@@ -51,6 +51,13 @@ function nodeToObjectForStreaming(fnode, depth, cb, isRecurring) {
     assert(fnode instanceof vfsLib.FileNode, 'fnode');
 
     var res = ceLib.extenduptolevel({name:fnode.name}, fnode, 1); // make a copy of the whole object without recurring, and overwriting the getter 'name'
+    var s = fnode.stats; // cannot use _clone on this one
+    if (s) {
+        res.ctime = s.ctime.toJSON();
+        res.mtime = s.mtime.toJSON();
+        if (fnode.isFile())
+            res.size = s.size;
+    }
     delete res._parent;  // this makes a circular reference
     delete res.children; // in case we want the true listing, not just the children
     if (!res.customName) {

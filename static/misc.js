@@ -113,21 +113,14 @@ function nameToType(name) {
     }
 } // nameToType
 
-// tries to access a deep property of object, following array "path" as for properties names   
-function getDeep(obj, path) {
-    for (var i=0, a=path, l=a.length; obj && i<l; ++i) {
-        obj = obj[a[i]];
-    }
-    return obj;         
-} // getDeep
-
 function assert(condition, message) {
     if (!condition) alert('ASSERTION ERROR: '+message);
     return !condition;
 } // assert
  
-function formatBytes(n) {
-    if (isNaN(Number(n))) return 'N/A';
+function formatBytes(n,post) {
+    if (isNaN(Number(n))) return '';
+    if (post===undefined) post='B';
     var x = [ '', 'K', 'M', 'G', 'T' ];
     var prevMul = 1;
     var mul = prevMul*1024;
@@ -136,9 +129,9 @@ function formatBytes(n) {
         mul *= 1024;
     }
     n /= prevMul;
-    var c = x[i];
-    if (c) c = ' '+c;
-    return round(n,1)+c;
+    x = x[i];
+    x = x ? ' '+x+post : ' '+post;
+    return round(n,1)+x;
 } // formatBytes
 
 function round(v, decimals) {

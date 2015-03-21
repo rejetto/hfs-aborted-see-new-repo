@@ -358,11 +358,10 @@ function getFirstChild(parent, pattern /** optional */) {
     var inputType = getType(parent); 
     parent = asLI(parent);
     assert(parent.length, 'parent');
-    assert(!pattern || typeof pattern == 'object', 'pattern');
     var res = false;
     parent.find('ul:first>li').each(function(idx,el){    
-        var child = asItem(el)
         if (pattern) { // do we have a pattern?
+            var child = asItem(el);
             if (!child) return;
             // does it match?
             for (var k in pattern) {
@@ -472,9 +471,17 @@ function enableButton(name, condition) {
     $('#'+name).attr({disabled: !condition});
 } // enableButton
 
+function getExpectedName(item) {
+    return item.resource ? basename(item.resource) : item.name;
+}//getExpectedName
+
 function treatFileData(item) {
-    if (!item.name) item.name = basename(item.resource);
-    else if (item.name==='/') item._expand({ name:'home', isRoot:true });
+    if (!item.name)
+        item.name = getExpectedName(item);
+    else if (item.name==='/')
+        item._expand({ name:'home', isRoot:true });
+    item.ctime = new Date(item.ctime);
+    item.mtime = new Date(item.mtime);
     if (!item.children) return;
     item.children.forEach(treatFileData);
 } // treatFileData
@@ -503,6 +510,7 @@ function reloadVFS(item, cb) {
                 data.children.forEach(function(it){
                     addItemUnder(e, it);
                 });
+                delete data.children; // no more needed
             }
             else if (!ul.children().length) { // there may be special items making UL non-empty
                 ul.append(tpl.noChildren.clone());
@@ -656,14 +664,26 @@ function addItemUnder(under, item, position) {
     // the UL element is the place for children, have one or create it
     var x = under.children('ul'); 
     under = x.length ? x : $('<ul>').appendTo(under);
-    
-     
+
     under.children('span.no-children').remove(); // remove any place holder
     var el = $(item.element || tpl.item.clone().addClass(item.deleted ? 'deleted' : 'item'));
+    el.attr({
+        title: [su("Size: ", formatBytes(item.size)),
+            item.ctime && "Created: {ctime.toLocaleString}",
+            item.mtime && !item.mtime.same(item.ctime) && "Modified: {mtime.toLocaleString}",
+            item.deleted ? "This item is deleted"
+                : item.overlapping ? "This item is fixed and overlapping another one with the same name."
+                : choose(item.nodeKind, {
+                    mod: "This item has been renamed.\nWas: {0|getExpectedName}",
+                    fixed: "This item is a fixed" // shitty description. Any better?
+                }, '')
+        ].filter().join('\n').x(item) ||null
+    });
     // overlay
     el.find('.icon-overlay').remove();
-    if (x=tpl['marker'+(item.overlapping ? 'Overlapping' : item.nodeKind.capital())])
-        x.clone().addClass('icon-overlay').insertBefore(el.find('.icon'));
+    if (!item.deleted)
+        if (x=tpl['marker'+(item.overlapping ? 'Overlapping' : item.nodeKind.capital())])
+            x.clone().addClass('icon-overlay').insertBefore(el.find('.icon'));
 
     var beforeThis; // where to put the new item
     if (position._among('top','sorted')) { // both require to put the item after special items (so skip them)
