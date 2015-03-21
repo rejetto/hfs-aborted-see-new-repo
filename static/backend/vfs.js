@@ -7,24 +7,22 @@ LOTS_OF_FILE_IN_FOLDER = 1000;
 tpl.item = "<li>"
     +"<span class='expansion-button'></span><span class='icon'></span><span class='label'></span>"
     +"</li>";
-tpl.markerVirtual = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='width:1.5em; height:1.5em; position:absolute;' viewBox='0 0 100 100'>"
-        +"<circle cx='0' cy='0' r='30' stroke='#000' stroke-width='2' fill='rgba(200,200,0,0.5)'/>"
-        +"<line x1='0' y1='0' x2='30' y2='0' stroke='#000' stroke-width='2' />"
-        +"<line x1='0' y1='0' x2='0' y2='30' stroke='#000' stroke-width='2' />"
+tpl.itemMarker = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='width:1.5em; height:1.5em; position:absolute;' viewBox='0 0 100 100'>"
+    +"<circle cx='0' cy='0' r='35' stroke='#000' stroke-width='2' fill='{color}'/>"
+    +"<line x1='0' y1='0' x2='35' y2='0' stroke='#000' stroke-width='2' />"
+    +"<line x1='0' y1='0' x2='0' y2='35' stroke='#000' stroke-width='2' />"
     +"</svg>";
-tpl.markerTemp = "";
-tpl.markerOver = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='width:1.5em; height:1.5em; position:absolute;' viewBox='0 0 100 100'>"
-    +"<circle cx='0' cy='0' r='30' stroke='#000' stroke-width='2' fill='rgba(300,0,0,0.3)'/>"
-    +"<line x1='0' y1='0' x2='30' y2='0' stroke='#000' stroke-width='2' />"
-    +"<line x1='0' y1='0' x2='0' y2='30' stroke='#000' stroke-width='2' />"
-    +"</svg>";
+tpl.markerMod = tpl.itemMarker.x({ color:'rgba(200,200,0,0.5)' });
+tpl.markerOverlapping = tpl.itemMarker.x({ color:'rgba(255,0,0,0.3)' });
+tpl.markerFixed = tpl.itemMarker.x({ color:'rgba(0,0,255,0.5)' });
 
 tpl.noChildren = "<span class='no-children'>nothing</span>";
-tpl.loader = "<img src='/~/pics/loader.gif' class='near-text' />";
+tpl.loader = "<img src='/~/pics/loader.gif' class='near-text loader' />";
 
 tpl._remap('$(A)'); // precompile, so we clone, no parsing
 
 $(function(){
+
     tpl.item.clone().addClass('item').attr('id','root').appendTo($('<ul>').appendTo('#vfs')); // create the root element
 
     // hide expansion button
@@ -56,7 +54,7 @@ function sendCommand(cmd, data, cb) {
 } // sendCommand
 
 function bindItem() { 
-    var it = getFirstSelectedFolder();
+    var it = getFirstSelected();
     if (!it) return;
     inputBox('Enter path', function(s){
         if (!s) return;
@@ -72,16 +70,20 @@ function renameItem() {
     var it = getFirstSelectedItem();
     if (!it || isRoot(it) || isDeleted(it)) return;
     inputBox('Enter new name', it.name, function(s){
+        if (!isString(s)) return; // canceled
         s = $.trim(s);
-        if (!s || s == it.name) return; // no change
+        if (s == it.name) return; // no change
         sendCommand('vfs.set', { uri:getURI(it), name:s }, function(result){
             if (!result.ok) {
                 msgBox(result.error);
                 return;
             }
-            it.name = s; // update object
-            bindItemToDOM(it, it.element); // update GUI
-        });                
+            var will = result.item;
+            treatFileData(will);
+            addItemUnder(getParent(it), will); // update GUI
+            $(it.element).remove();
+            vfsSelect(will);
+        });
     });
 } // renameItem
 
@@ -479,7 +481,9 @@ function treatFileData(item) {
 
 function reloadVFS(item, cb) {
     var e = item ? asLI(item) : getRoot();
-    var loader = tpl.loader.clone().appendTo( e.find('.label:first') );
+    var loader = e.find('.label:first .loader');
+    if (!loader.length)
+        loader = tpl.loader.clone().appendTo( e.find('.label:first') );
     sendCommand('vfs.get', { uri:item ? getURI(item) : '/', depth:1 }, function(data){
         try {
             if (!data || !data.ok) return;
@@ -532,6 +536,8 @@ function setExpanded(item, state) {
     if (isExpanded(li) == state) return;
     li.addClass(state ? 'expanded' : 'collapsed')
         .removeClass(!state ? 'expanded' : 'collapsed');
+    if (!state)
+        li.find('.label:first .loader').remove();
     updateDeletedItems(li);
     // deal with the container of children    
     var ul = li.find('ul:first');
@@ -634,7 +640,8 @@ function updateDeletedItems(it, options) {
  */
 function addItemUnder(under, item, position) {
     if (!item) return false;
-    if (position === undefined) position = 'sorted';
+    if (position === undefined)
+        position = 'sorted';
     under = asLI(under);
     if (under.hasClass('deleted-items')
     && typeof item == 'string') { // automatic construction of the special item
@@ -652,10 +659,11 @@ function addItemUnder(under, item, position) {
     
      
     under.children('span.no-children').remove(); // remove any place holder
-    var el = tpl.item.clone().addClass(item.deleted ? 'deleted' : 'item');
+    var el = $(item.element || tpl.item.clone().addClass(item.deleted ? 'deleted' : 'item'));
     // overlay
-    var kind = (item.nodeKind == 'temp') ? 'Temp' : (item.overlapping) ? 'Over' : 'Virtual';
-    tpl['marker'+kind].clone().insertBefore(el.find('.icon'));
+    el.find('.icon-overlay').remove();
+    if (x=tpl['marker'+(item.overlapping ? 'Overlapping' : item.nodeKind.capital())])
+        x.clone().addClass('icon-overlay').insertBefore(el.find('.icon'));
 
     var beforeThis; // where to put the new item
     if (position._among('top','sorted')) { // both require to put the item after special items (so skip them)

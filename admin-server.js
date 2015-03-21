@@ -53,7 +53,9 @@ function nodeToObjectForStreaming(fnode, depth, cb, isRecurring) {
     var res = ceLib.extenduptolevel({name:fnode.name}, fnode, 1); // make a copy of the whole object without recurring, and overwriting the getter 'name'
     delete res._parent;  // this makes a circular reference
     delete res.children; // in case we want the true listing, not just the children
-    if (!res.customName) delete res.name;
+    if (!res.customName) {
+        delete res.name;
+    }
     delete res.customName;
     // save bandwidth by not sending some empty properties
     if (res.deletedItems
@@ -110,24 +112,23 @@ var sockets = serving.sockets(srv, {
             : null)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
-            if (!fnode) {
-                serving.ioError(cb, 'not found');
-                return;
-            }
-            if (data.name) {
-                if (serving.ioError(cb, isString(data.name) ? null : 'name')) return;
+            if (serving.ioError(cb, !fnode ? 'not found'
+                : 'name' in data && !isString(data.name) ? 'name'
+                : 'resource' in data && !isString(data.resource) ? 'resource'
+                : null)) return;
+            if ('name' in data)
                 fnode.name = data.name;
-                serving.ioOk(cb);
-                notifyVfsChange(socket, fnode.getURI().excludeTrailing('/'));
-                return;
-            }
-            if (data.resource) {
-                if (serving.ioError(cb, isString(data.resource) ? null : 'resource')) return;
-                fnode.set(data.resource, function(){
-                    serving.ioOk(cb);
+            async.series([
+                function(doneThis){
+                    if ('resource' in data)
+                        return fnode.set(data.resource, doneThis);
+                    doneThis();
+                },
+                function(){
+                    serving.ioOk(cb, { item:nodeToObjectForStreaming(fnode) });
                     notifyVfsChange(socket, fnode.getURI().excludeTrailing('/'));
-                });
-            }
+                }
+            ]);
         });
     },
     
