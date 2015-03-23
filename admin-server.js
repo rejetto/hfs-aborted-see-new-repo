@@ -55,6 +55,8 @@ function nodeToObjectForStreaming(fnode, depth, cb, isRecurring) {
     if (s) {
         res.ctime = s.ctime.toJSON();
         res.mtime = s.mtime.toJSON();
+        if (res.mtime===res.ctime)
+            delete res.mtime;
         if (fnode.isFile())
             res.size = s.size;
     }

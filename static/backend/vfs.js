@@ -480,8 +480,10 @@ function treatFileData(item) {
         item.name = getExpectedName(item);
     else if (item.name==='/')
         item._expand({ name:'home', isRoot:true });
-    item.ctime = new Date(item.ctime);
-    item.mtime = new Date(item.mtime);
+    if (isString(item.ctime))
+        item.ctime = new Date(item.ctime);
+    if (isString(item.mtime))
+        item.mtime = new Date(item.mtime);
     if (!item.children) return;
     item.children.forEach(treatFileData);
 } // treatFileData
@@ -671,7 +673,7 @@ function addItemUnder(under, item, position) {
     el.attr({
         title: [su("Size: ", formatBytes(item.size)),
             item.ctime && "Created: {ctime.toLocaleString}",
-            item.mtime && !item.mtime.same(item.ctime) && "Modified: {mtime.toLocaleString}",
+            item.mtime && "Modified: {mtime.toLocaleString}",
             item.deleted ? "This item is deleted"
                 : item.overlapping ? "This item is fixed and overlapping another one with the same name."
                 : choose(item.nodeKind, {
