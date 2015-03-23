@@ -491,26 +491,27 @@ function reloadVFS(item, cb) {
     var loader = e.find('.label:first .loader');
     if (!loader.length)
         loader = tpl.loader.clone().appendTo( e.find('.label:first') );
-    sendCommand('vfs.get', { uri:item ? getURI(item) : '/', depth:1 }, function(data){
+    sendCommand('vfs.get', { uri:item ? getURI(item) : '/', depth:1 }, function(res){
         try {
-            if (!data || !data.ok) return;
-            var n = tryGet(data, 'children.length');
+            if (!res || !res.ok) return;
+            var it = res.item;
+            var n = tryGet(it, 'children.length');
             if (n > LOTS_OF_FILE_IN_FOLDER
             && !confirm('This folder contains {0} items. It may slow down your computer. Continue?'.x(n))) {
                 setExpanded(e, false);
                 return;
             }
-            treatFileData(data);
-            bindItemToDOM(data, e);
+            treatFileData(it);
+            bindItemToDOM(it, e);
             setExpanded(e);
             var ul = e.find('ul:first');
             ul.empty();  // clean, first
             updateDeletedItems(e);
             if (n) {
-                data.children.forEach(function(it){
+                it.children.forEach(function(it){
                     addItemUnder(e, it);
                 });
-                delete data.children; // no more needed
+                delete it.children; // no more needed
             }
             else if (!ul.children().length) { // there may be special items making UL non-empty
                 ul.append(tpl.noChildren.clone());

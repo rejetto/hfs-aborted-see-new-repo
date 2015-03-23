@@ -907,7 +907,8 @@ Object.extend('_expand', function(another, keys){
             if (keys) another = another._clone(keys);
             if (another === null) break;
             for (var k in another)
-                this[k] = another[k];
+                if (another.hasOwnProperty(k))
+                    this[k] = another[k];
             break;
         case 'string':
             if (arguments.length>1)

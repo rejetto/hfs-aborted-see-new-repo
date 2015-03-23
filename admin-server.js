@@ -50,7 +50,7 @@ function nodeToObjectForStreaming(fnode, depth, cb, isRecurring) {
     }
     assert(fnode instanceof vfsLib.FileNode, 'fnode');
 
-    var res = ceLib.extenduptolevel({name:fnode.name}, fnode, 1); // make a copy of the whole object without recurring, and overwriting the getter 'name'
+    var res = fnode._clone()._expand({ name:fnode.name }); // make a copy of the whole object without recurring, and overwriting the getter 'name'
     var s = fnode.stats; // cannot use _clone on this one
     if (s) {
         res.ctime = s.ctime.toJSON();
@@ -105,8 +105,11 @@ var sockets = serving.sockets(srv, {
             : null)) return;
             
         vfs.fromUrl(data.uri, function(fnode) {
-            if (!fnode) serving.ioError(cb, 'not found');
-            else nodeToObjectForStreaming(fnode, Math.min(2,data.depth), serving.ioOk.bind_(cb));
+            if (!fnode)
+                return serving.ioError(cb, 'not found');
+            nodeToObjectForStreaming(fnode, Math.min(2,data.depth), function(res){
+                serving.ioOk(cb, { item:res });
+            });
         });
     },
 
