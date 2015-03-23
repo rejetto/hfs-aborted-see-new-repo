@@ -186,7 +186,7 @@ var sockets = serving.sockets(srv, {
             fnode.delete(function(folder){
                 // if we just deleted a dynamic item, the GUI may need an extra refresh
                 serving.ioOk(cb, {
-                    dynamicItem: fnode.isTemp() && path.basename(fnode.resource)+(fnode.isFolder() ? '/' : ''), // a trailing slash denotes folders
+                    dynamicItem: fnode.nodeKind!==NK.FIXED && path.basename(fnode.resource)+(fnode.isFolder() ? '/' : ''), // a trailing slash denotes folders
                     folderDeletedCount: folder.deletedItems ? folder.deletedItems.length : 0
                 });
                 notifyVfsChange(socket, folder.getURI()); 
