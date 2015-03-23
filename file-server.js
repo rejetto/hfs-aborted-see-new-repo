@@ -53,7 +53,7 @@ exports.sockets = serving.sockets(srv, {
                     // we'll use short key names to save bandwidth on common fieldnames.
                     var it = {
                         n: f.name,
-                        t: f.itemKind.replace('virtual ','') // this is a quick and dirty method to get value as file|folder|link
+                        t: f.itemKind
                     };
                     // size
                     if (f.isOnDisk() && !f.isFolder())
