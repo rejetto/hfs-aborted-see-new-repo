@@ -286,7 +286,7 @@ function updateMode(v){
             var d = $('#items');
             var x = d.children(':first').width();
             if (!x) return; // no items
-            var n = Math.floor(d.width() / x);
+            var n = Math.floor((d.width()-5) / x); // leave a small margin, otherwise the browser decides it is not truly fitting, and you get an undesired wrapping
             if ($.support.hover) n--; // we leave some space for popup properties
             var should = d.children(':nth-child({0}n+1):not(:first)'.x(n));
             if (should[0] === d.children('.forced-br:first')[0]) return; // nothing changed
