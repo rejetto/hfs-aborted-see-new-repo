@@ -8,7 +8,7 @@ GLOBAL.vfs = new vfsLib.Vfs();
 
 //vfs.writeTo('C:\\temp\\test');
 //vfs.readFrom('C:\\temp\\test');
-
+/*
 vfs.root.set('C:\\music', function(err){
     assert(!err);
     this.add('archive', function(err){
@@ -16,6 +16,7 @@ vfs.root.set('C:\\music', function(err){
         this.add("3");
     });
 });
+*/
 //vfs.root.set('C:\\vedere')//.add('c:\\data\\pics\\fantasy');
 //vfs.root.add('C:\\temp');
 //vfs.root.add('C:\\windows\\system32'); // used to test many files (2k+)
