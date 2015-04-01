@@ -12,7 +12,7 @@ function loadJS(libs) {
 loadJS('extending,cs-shared,misc');
 
 
-var socket, currentFolder, listFromServer, foldersBefore=1, currentPage=0;
+var socket, currentFolder, listFromServer, currentMode, foldersBefore=1, currentPage= 0;
 
 // this object will hold all the customizable stuff, that is added in file "tpl.js"  
 var TPL = function(event) {
@@ -69,13 +69,13 @@ $(function onJQ(){ // dom ready
         loadFolder(getURLfolder(), function onFolder(){ // folder ready
 
             /* support for the BACK button: when the user clicks the BACK button, the address bar changes going out of   
-                sync with the view. We fix it ASAP. I don't know an event for the address bar, so i'm using an setInterval. */         
-            setInterval(function onBackSupport(){
+                sync with the view. We fix it ASAP. I don't know an event for the address bar, so i'm polling. */
+            repeat(300, function(){
                 var shouldBe = getURLfolder(); 
                 if (currentFolder != shouldBe) {
                     loadFolder(shouldBe);        
                 } 
-            }, 300);
+            });
 
         }); // don't redraw        
     });//socket connect
@@ -111,6 +111,26 @@ $(function onJQ(){ // dom ready
             }
         }
     }, '.item-link');
+
+    /* display:float used by 'tiles' is CPU expensive when we get many items (500+ on a core2duo@2.1).
+     * To ease this task we periodically set fixed line breaks.
+     */
+    var last;
+    repeat(100, function(){
+        if (currentMode !== 'tiles') {
+            last = null;
+            return;
+        }
+        var d = $('#items');
+        var x = d.children(':first').width();
+        if (!x) return; // no items
+        var n = Math.floor((d.width() - 5) / x); // leave a small margin, otherwise the browser decides it is not truly fitting, and you get an undesired wrapping
+        if ($.support.hover) n--; // we leave some space for popup properties
+        if (n === last) return;
+        last = n;
+        d.children('.forced-br').removeClass('forced-br'); // clean
+        d.children(':nth-child({0}n+1):not(:first)'.x(n)).addClass('forced-br'); // set new br
+    });
 
 });//dom ready
 
@@ -276,27 +296,6 @@ function updateMode(v){
     currentMode = v; // global 
     updateSettingsCookie({ mode: v }); // remember 
     $('html').attr('mode', v);
-
-    /* float mode used by 'tiles' is CPU expensive when we get many items (500+ on a core2duo@2.1).
-     * To ease this task we periodically set fixed line breaks.
-     */
-    if (v == 'tiles') {
-        if (updateMode.h) clearInterval(updateMode.h);
-        function update(){
-            var d = $('#items');
-            var x = d.children(':first').width();
-            if (!x) return; // no items
-            var n = Math.floor((d.width()-5) / x); // leave a small margin, otherwise the browser decides it is not truly fitting, and you get an undesired wrapping
-            if ($.support.hover) n--; // we leave some space for popup properties
-            var should = d.children(':nth-child({0}n+1):not(:first)'.x(n));
-            if (should[0] === d.children('.forced-br:first')[0]) return; // nothing changed
-            d.children('.forced-br').removeClass('forced-br'); // clean
-            should.addClass('forced-br'); // set new br
-            //clearInterval(updateMode.h);
-        }
-        updateMode.h = setInterval(update, 100);
-        update();
-    }
 } // updateMode
 
 function updatePagination(v){

@@ -158,8 +158,8 @@ function animate(object, property, endValue, options) {
         delete object[trackingKey];
         call(options.onEnd, endParameter);
     }
-    
-    if (object[trackingKey]) {
+
+    if (trackingKey in object) {
         if (object[trackingKey].endValue === endValue) return; // don't do it twice
         end(); // terminate previous
     }    
@@ -218,6 +218,14 @@ function benchmark() {
     for (var i=100000; i--;) t[i] = i; 
     return (new Date())-t;
 } // benchmark
+
+function repeat(delay, f, rightNow){
+    if (rightNow && f() === false) return;
+    setTimeout(function(){
+        if (f() !== false)
+            repeat(delay, f);
+    }, delay);
+} // repeat
 
 /* CURRENTLY UNUSED
 
