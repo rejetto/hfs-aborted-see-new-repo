@@ -1,8 +1,11 @@
+FE: hovering, item's name can span over 2-3 items: add a background or border to avoid confusion
+
 === DOING
 improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
 
 === NEXT
+update jquery
 benchmark on mobile: measure the time it takes to enter a folder, and then show it with an alert
 save vfs to file (yml)
 
