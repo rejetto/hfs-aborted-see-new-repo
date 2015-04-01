@@ -1334,6 +1334,7 @@ Object.extend('_find', function(condition, options){
 
 Object.extend('_setHidden', function(key,value){
     Object.defineProperty(this, key, {
+        configurable: true,
         enumerable: false,
         writable: true,
         value: value
