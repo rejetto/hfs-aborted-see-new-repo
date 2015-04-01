@@ -133,7 +133,10 @@ var sockets = serving.sockets(srv, {
             async.series([
                 function(doneThis){
                     if ('resource' in data)
-                        return fnode.set(data.resource, doneThis);
+                        return fnode.setPath(data.resource, function(err){
+                            serving.ioError(cb, err && choose(err.code,{ ENOENT:'resource not found' },err.code))
+                            || doneThis();
+                        });
                     doneThis();
                 },
                 function(){
