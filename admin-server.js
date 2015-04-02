@@ -166,9 +166,9 @@ var sockets = serving.sockets(srv, {
                 serving.ioError(cb, 'already exists');
                 return;
             }            
-            fnode.add(data.resource, function(newNode){
+            fnode.add(data.resource, function(err, newNode){
                 serving.ioOk(cb, {item:nodeToObjectForStreaming(newNode)});
-                notifyVfsChange(socket, data.uri);
+                notifyVfsChange(socket, newNode.getURI().excludeTrailing('/'));
             });  
         });
     },
@@ -243,7 +243,7 @@ var sockets = serving.sockets(srv, {
 
 notifyVfsChange = function(socket, uri) {
     dbg('vfs.changed');
-    var evt = 'vfs.changed', data={uri:uri};
+    var evt = 'vfs.changed', data={uri:uri||'/'};
     require('./file-server').sockets.broadcast(evt, data);
     socket.broadcast.emit(evt, data);
 }; // notifyVfsChange
