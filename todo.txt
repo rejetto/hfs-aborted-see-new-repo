@@ -1,4 +1,4 @@
-FE: hovering, item's name can span over 2-3 items: add a background or border to avoid confusion
+bug: if BE changes a resource, FE is not refreshing
 
 === DOING
 improve in-source documentation
