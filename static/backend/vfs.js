@@ -39,7 +39,43 @@ $(function(){
         if (!isExpanded(it)) return; // not expanded, we don't see its content, no need to reload
         reloadVFS(it);
     });
+
+    // some event handlers
+    $('#vfs').click(function(){
+        vfsSelect(null); // deselect
+    });
+    $('#vfs').on({
+        click: function(ev){
+            vfsSelect(this);
+            return false;
+        },
+        dblclick: function(ev){
+            var it = getFirstSelected();
+            if (isFolder(it)) {
+                toggleExpanded(it);
+            }
+            return false;
+        }
+    }, 'li');
+    $('#vfs').on({
+        click: function(ev){
+            toggleExpanded($(this).closest('li'));
+        }
+    }, '.expansion-button');
+    $('#vfs').hover(showExpansionButtons, hideExpansionButtons);
+    $('#bindItem').click(bindItem);
+    $('#addItem').click(addItem);
+    $('#renameItem').click(renameItem);
+    $('#deleteItem').click(deleteItem);
+    $('#save').click(save);
 });
+
+function save() {
+    sendCommand('vfs.export', {}, function(res){
+        var blob = new Blob([res.data], { type:'application/octect-stream' });
+        saveAs(blob, 'hfs.vfs');
+    });
+}//save
 
 function sameFileName(a,b) {
     return serverInfo.caseSensitiveFileNames ? a === b : a.same(b);
@@ -203,36 +239,6 @@ function showExpansionButtons(state /** optional */) {
 function toggleExpanded(li) {
     isExpanded(li) ? setExpanded(li, false) : expandAndLoad(li);
 } // toggleExpanded
-
-// some event handlers
-$(function(){
-    $('#vfs').click(function(){
-        vfsSelect(null); // deselect
-    });
-    $('#vfs').on({
-        click: function(ev){
-            vfsSelect(this);
-            return false;
-        },
-        dblclick: function(ev){
-            var it = getFirstSelected();
-            if (isFolder(it)) {
-                toggleExpanded(it);
-            }
-            return false;
-        }
-    }, 'li');
-    $('#vfs').on({
-        click: function(ev){
-            toggleExpanded($(this).closest('li'));
-        }
-    }, '.expansion-button');
-    $('#vfs').hover(showExpansionButtons, hideExpansionButtons);
-    $('#bindItem').click(bindItem);
-    $('#addItem').click(addItem);
-    $('#renameItem').click(renameItem);
-    $('#deleteItem').click(deleteItem);
-});
 
 function eventHandler_vfs_keydown(ev) {
     var sel = getFirstSelected();  

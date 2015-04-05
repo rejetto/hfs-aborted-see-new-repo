@@ -232,6 +232,10 @@ var sockets = serving.sockets(srv, {
         });
     },
 
+    'vfs.export': function onExport(data, cb){
+        serving.ioOk(cb, { data: vfs.toString() });
+    },
+
     'info.get': function onInfo(data, cb){
         serving.ioOk(cb, {
             caseSensitiveFileNames: caseSensitiveFileNames,
