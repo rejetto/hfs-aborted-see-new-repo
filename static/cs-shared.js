@@ -54,3 +54,16 @@ exports.isEmpty = function(v) {
         || isArray(v) && !v.length
         || v instanceof Object && v._isEmpty()
 } // isEmpty
+
+exports.newObj = function(k,v) {
+    var ret = {};
+    if (isArray(k))
+        k.forEach(function(k){ ret[k]=v });
+    else
+        ret[k] = v;
+    return ret;
+};
+
+exports.clone = function(v, deep/*default:true*/) {
+    return (v && typeof v==='object') ? v._clone(deep!==false) : v;
+};// clone
