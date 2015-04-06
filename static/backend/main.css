@@ -4,8 +4,10 @@ a img { border:0; } /* conform IE */
 #vfs { display:inline-block; } /* when a node is selected, it's nicer to see the highlighting span for the minimum necessary width instead of whole screen */
 #vfs ul { list-style:none; padding:0; }
 #vfs ul ul { list-style:none; padding-left:3em; }
-#vfs li { border:2px solid transparent; padding:0.1em 0.2em }
-#vfs li.selected { background:#ddf; border-color:#99f; }
+#vfs li { border:2px solid transparent; }
+#vfs li>.item-row { padding:0.1em 0.2em; }
+#vfs li.selected { border-color:#99f; background:#fafaff; }
+#vfs li.selected>.item-row { background:#ddf; }
 #vfs .expansion-button { margin-right:0em; cursor:pointer; display:inline-block; width:1em; }
 #vfs .expansion-button:hover { background-color:#ddd; }
 #vfs li.collapsed>ul { display:none; } 

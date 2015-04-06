@@ -5,7 +5,7 @@
 LOTS_OF_FILE_IN_FOLDER = 1000;
 
 tpl.item = "<li>"
-    +"<span class='expansion-button'></span><span class='icon'></span><span class='label'></span>"
+    +"<div class='item-row'><span class='expansion-button'></span><span class='icon'></span><span class='label'></span></div>"
     +"</li>";
 tpl.itemMarker = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='width:1.5em; height:1.5em; position:absolute;' viewBox='0 0 100 100'>"
     +"<circle cx='0' cy='0' r='35' stroke='#000' stroke-width='2' fill='{color}'/>"
