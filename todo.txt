@@ -3,12 +3,9 @@ improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
 
 === NEXT
-update jquery
 benchmark on mobile: measure the time it takes to enter a folder, and then show it with an alert
-save vfs to file (yml)
 
 === AFTER
-? comply with standard callback(err,data)
 ? folder multi-bind
     ? if 2 binds have 2 subfolders with same name, should merge them too? 
 vfs permissions
@@ -17,14 +14,6 @@ zip stream
 handle non-working IO connection for both frontend and backend
 ? coffee-script
 what wiki to use for development, github or rejetto.com?
-
-=== SHOULD I SWITCH TO PYTHON 3?
-now tornado supports python3. Reconsider.
-    PROS
-    - wider programmers community
-    - more libraries (sure? libs need to be async, don't they? so, they may even be fewer)
-    CONS
-    - have to port the whole server part
 
 === INTERESTING MODULES
 for better performance on socket.io exchanges https://github.com/pgriess/node-msgpack
