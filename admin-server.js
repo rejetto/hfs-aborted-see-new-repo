@@ -222,10 +222,7 @@ var sockets = serving.sockets(srv, {
                 return;
             }
             fnode.createChildRelatively(data.resource, function(err, child){
-                if (err) {
-                    serving.ioError(err);
-                    return;
-                }
+                if (serving.ioError(err)) return;
                 serving.ioOk(cb, {item:child});
                 notifyVfsChange(socket, fnode.getURI());
             });
@@ -234,6 +231,15 @@ var sockets = serving.sockets(srv, {
 
     'vfs.export': function onExport(data, cb){
         serving.ioOk(cb, { data: vfs.toString() });
+    },
+    'vfs.import': function onImport(data, cb){
+        if (serving.ioError(cb, !data.root ? 'root' : null)) return;
+        var socket = this;
+        vfs.fromString(data.root, function(err){
+            if (serving.ioError(cb, err)) return;
+            serving.ioOk(cb);
+            notifyVfsChange(socket, vfs.root.getURI());
+        });
     },
 
     'info.get': function onInfo(data, cb){

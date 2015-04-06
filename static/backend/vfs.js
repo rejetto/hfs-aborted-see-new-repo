@@ -68,7 +68,24 @@ $(function(){
     $('#renameItem').click(renameItem);
     $('#deleteItem').click(deleteItem);
     $('#save').click(save);
+    makeItFileSelector('#load', load);
 });
+
+function makeItFileSelector(el, cb) {
+    el = $(el);
+    // cover the real button to intercept the click
+    var f = $('<input type="file">').css({ position:'absolute', opacity:0.001 }).insertBefore(el);
+    el.resize(function(w,h){
+        f.css({ width:w, height:h });
+    });
+
+    f.change(function(){
+        if (!this.files.length) return;
+        var sel = this.files;
+        cb(sel);
+        f.val(''); // so that the user can reload the same files
+    });
+}//makeItFileSelector
 
 function save() {
     sendCommand('vfs.export', {}, function(res){
@@ -76,6 +93,24 @@ function save() {
         saveAs(blob, 'hfs.vfs');
     });
 }//save
+
+function load(sel) {
+    readFile(sel[0], function(data){
+        if (!isString(data)) return;
+        sendCommand('vfs.import', { root:data }, function(res){
+            if (res.ok)
+                reloadVFS();
+        });
+    });
+}//load
+
+function readFile(src, cb){
+    var reader = new FileReader();
+    reader.onload = function(event) {
+        cb(event.target.result);
+    };
+    reader.readAsText(src);
+}//readFile
 
 function sameFileName(a,b) {
     return serverInfo.caseSensitiveFileNames ? a === b : a.same(b);
@@ -85,7 +120,7 @@ function sendCommand(cmd, data, cb) {
     socket.emit(cmd, ioData(data), function(result){
         ioData(result);
         log(cmd, result);
-        cb(result);
+        cb && cb(result);
     })
 } // sendCommand
 
