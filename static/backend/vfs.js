@@ -74,10 +74,7 @@ $(function(){
 function makeItFileSelector(el, cb) {
     el = $(el);
     // cover the real button to intercept the click
-    var f = $('<input type="file">').css({ position:'absolute', opacity:0.001 }).insertBefore(el);
-    el.resize(function(w,h){
-        f.css({ width:w, height:h });
-    });
+    var f = $('<input type="file">').css({ position:'absolute', opacity:0.001 }).sameSize(el).insertBefore(el);
 
     f.change(function(){
         if (!this.files.length) return;

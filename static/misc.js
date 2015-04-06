@@ -49,6 +49,11 @@ jQuery.fn.offScreen = function(options){
     return false;
 }; // offScreen
 
+jQuery.fn.sameSize = function(other){
+    other = $(other);
+    return this.width(other.outerWidth()).height(other.outerHeight());
+};
+
 var log = function() {
     if (typeof window.console != 'undefined' && console.log) {
         var last;
