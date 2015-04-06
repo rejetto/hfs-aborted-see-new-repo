@@ -548,9 +548,11 @@ function reloadVFS(item, cb) {
             ul.empty();  // clean, first
             updateDeletedItems(e);
             if (n) {
+                ul.hide();
                 it.children.forEach(function(it){
                     addItemUnder(e, it);
                 });
+                ul.slideDown(100);
                 delete it.children; // no more needed
             }
             else if (!ul.children().length) { // there may be special items making UL non-empty
@@ -595,8 +597,10 @@ function setExpanded(item, state) {
             ul = $('<ul>').appendTo(li);
     } 
     else {
-        ul.remove();
-    }        
+        ul.slideUp(100, function(){
+            ul.remove();
+        });
+    }
     return true;
 } // setExpanded
 
