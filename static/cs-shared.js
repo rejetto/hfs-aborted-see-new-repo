@@ -67,3 +67,12 @@ exports.newObj = function(k,v) {
 exports.clone = function(v, deep/*default:true*/) {
     return (v && typeof v==='object') ? v._clone(deep!==false) : v;
 };// clone
+
+// like console.log but better: outputs multiple parameters and returns last one, so you can concatenate
+exports.log = function(){
+    var a = arguments;
+    if (GLOBAL.console && console.log)
+        console.log.apply(console, a);
+    return a[a.length-1];
+}; // log
+

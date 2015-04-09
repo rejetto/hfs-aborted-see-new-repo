@@ -54,15 +54,6 @@ jQuery.fn.sameSize = function(other){
     return this.width(other.outerWidth()).height(other.outerHeight());
 };
 
-var log = function() {
-    if (typeof window.console != 'undefined' && console.log) {
-        var last;
-        for (var k in arguments)
-            console.log(last = arguments[k]);
-    }
-    return last;
-}; // log
-
 function isTransparent(color) {
     if (!color || color == "transparent") return true;
     var m = color.match(/rgba *\( *(\d+) *, *(\d+) *, *(\d+) *, *(\d+) *\)/);
