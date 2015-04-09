@@ -49,6 +49,7 @@ exports.sockets = serving.sockets(srv, {
             fnode.dir(function(items, bads){
                 assert(items, 'items');
                 // convert items to a simpler format
+                items = items._values();
                 items.remap(function(f){
                     // we'll use short key names to save bandwidth on common fieldnames.
                     var it = {

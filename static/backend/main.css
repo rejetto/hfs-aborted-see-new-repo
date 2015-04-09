@@ -7,6 +7,7 @@ a img { border:0; } /* conform IE */
 #vfs li { border:2px solid transparent; }
 #vfs li>.item-row { padding:0.1em 0.2em; }
 #vfs li.selected { border-color:#99f; background:#fafaff; }
+#vfs li.target { border-color:#9f0; }
 #vfs li.selected>.item-row { background:#ddf; }
 #vfs .expansion-button { margin-right:0em; cursor:pointer; display:inline-block; width:1em; }
 #vfs .expansion-button:hover { background-color:#ddd; }

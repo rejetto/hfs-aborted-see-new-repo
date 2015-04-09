@@ -86,7 +86,7 @@ function nodeToObjectForStreaming(fnode, depth, cb, isRecurring) {
     // recur on children
     fnode.dir(function(items,bads){
         res.children = [];
-        async.forEach(items, function(e, doneThis){
+        async.forEach(items._values(), function(e, doneThis){
             nodeToObjectForStreaming(e, depth-1, function(obj){
                 res.children.push(obj);
                 doneThis();
@@ -197,6 +197,49 @@ var sockets = serving.sockets(srv, {
         });
     },
 
+    // move an item within the vfs
+    'vfs.move': function onMove(data, cb){
+        var socket = this;
+        // assertions
+        if (serving.ioError(cb, !data ? 'data'
+            : !isString(data.from) ? 'from'
+            : !isString(data.to) ? 'to'
+            : null)) return;
+
+        vfs.fromUrl(data.to, function(destination){
+            if (serving.ioError(cb, !destination && 'destination not found')) return;
+
+            vfs.fromUrl(data.from, function(source){
+                if (serving.ioError(cb, !source ? 'source not found'
+                    : destination.getChildByName(source.name) ? 'already exists'
+                    : null)) return;
+
+                var originalSourceFolder = source.getURI().excludeTrailing('/').split('/').slice(0,-1).join('/')+'/'; // one level above
+
+                if (source.isFixed()) {
+                    source.parent = destination;
+                    return done(source);
+                }
+                source.delete(function(){
+                    destination.add(source.resource, function(err,addition){
+                        serving.ioError(cb, err)
+                        || done(addition);
+                    });
+                });
+
+                function done(item){
+                    item.refreshOverlapping(function(){
+                        vfs.fromUrl(data.from, function(updatedFrom){
+                            serving.ioOk(cb, { from:updatedFrom||null, to:nodeToObjectForStreaming(item) });
+                        });
+                        notifyVfsChange(socket, originalSourceFolder);
+                        notifyVfsChange(socket, data.from);
+                    });
+                }
+            });
+        });
+    },
+
     // restore a temp item that was deleted
     'vfs.restore': function onRestore(data, cb){
         var socket = this;
@@ -222,7 +265,7 @@ var sockets = serving.sockets(srv, {
                 return;
             }
             fnode.createChildRelatively(data.resource, function(err, child){
-                if (serving.ioError(err)) return;
+                if (serving.ioError(cb, err)) return;
                 serving.ioOk(cb, {item:child});
                 notifyVfsChange(socket, fnode.getURI());
             });
@@ -252,7 +295,7 @@ var sockets = serving.sockets(srv, {
 });
 
 notifyVfsChange = function(socket, uri) {
-    dbg('vfs.changed');
+    dbg('vfs.changed '+uri);
     var evt = 'vfs.changed', data={uri:uri||'/'};
     require('./file-server').sockets.broadcast(evt, data);
     socket.broadcast.emit(evt, data);

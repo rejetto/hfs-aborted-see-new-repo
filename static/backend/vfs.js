@@ -4,7 +4,7 @@
 
 LOTS_OF_FILE_IN_FOLDER = 1000;
 
-tpl.item = "<li>"
+tpl.item = "<li draggable='true'>"
     +"<div class='item-row'><span class='expansion-button'></span><span class='icon'></span><span class='label'></span></div>"
     +"</li>";
 tpl.itemMarker = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='width:1.5em; height:1.5em; position:absolute;' viewBox='0 0 100 100'>"
@@ -44,6 +44,8 @@ $(function(){
     $('#vfs').click(function(){
         vfsSelect(null); // deselect
     });
+    // drag&drop
+    var dragging, destination;
     $('#vfs').on({
         click: function(ev){
             vfsSelect(this);
@@ -55,8 +57,31 @@ $(function(){
                 toggleExpanded(it);
             }
             return false;
+        },
+        dragstart:function(event){
+            dragging = asLI(event.target);
+            event.stopPropagation();
+        },
+        drop:function(event){
+            event.preventDefault();
+            event.stopPropagation();
+            moveItem(dragging, destination);
+        },
+        dragover:function(event) {
+            destination = asLI(event.target);
+            if (!destination.length) return;
+            while (!isFolder(destination)) // only folders are a destination (for now)
+                destination = getParent(destination);
+
+            if (!dragging._parent)
+                dragging._parent = getParent(dragging); // cache it
+            if (destination[0]===dragging._parent[0]) return; // going nowhere
+            if (destination.closest(dragging).length) return; // nothing within us
+
+            event.preventDefault();
         }
     }, 'li');
+
     $('#vfs').on({
         click: function(ev){
             toggleExpanded($(this).closest('li'));
@@ -134,7 +159,25 @@ function bindItem() {
     });
 } // bindItem
 
-function renameItem() {    
+function moveItem(what, where) {
+    sendCommand('vfs.move', { from:getURI(what), to:getURI(where) }, function(result){
+        if (!result.ok)
+            return msgBox(result.error);
+        var v = result.from;
+        if (v) {
+            treatFileData(v);
+            addItemUnder(getParent(what), v);
+        }
+        asLI(what).remove();
+        treatFileData(v=result.to);
+        if (!isExpanded(where)) return;
+        if (v.overlapping)
+            asLI(getItemFromURI(v.name, where)).remove(); // remove overlapped one
+        addItemUnder(where, v);
+    });
+}//moveItem
+
+function renameItem() {
     var it = getFirstSelectedItem();
     if (!it || isRoot(it) || isDeleted(it)) return;
     inputBox('Enter new name', it.name, function(s){
@@ -189,15 +232,20 @@ function deleteItem() {
         if (oldNumber !== result.folderDeletedCount) {
             updateDeletedItems(parent, {adding:result.dynamicItem});
         }
-        // GUI refresh
-        li.fadeOut(100, function(){
-            li.remove();
-            if (!getFirstChild(parent).length) { 
-                parent.find('ul:first').append(tpl.noChildren.clone()); // deleted last item of a folder
-            }
-        })        
+        removeTreeItem(li);
     });
 } // deleteItem
+
+function removeTreeItem(li) {
+    li = asLI(li);
+    li.fadeOut(100, function(){
+        var parent = getParent(li);
+        li.remove();
+        if (!getFirstChild(parent).length) {
+            parent.find('ul:first').append(tpl.noChildren.clone()); // deleted last item of a folder
+        }
+    })
+}//removeTreeItem
 
 function restoreItem(it) {
     if (it === undefined)
@@ -424,9 +472,9 @@ function getLastChild(parent) {
 /** determine the type of the element */
 function getType(x) {
     if (!x) return false;
-    if (x.element) return 'item';
+    if ('itemKind' in x) return 'item';
     if (x instanceof HTMLElement) return 'html';
-    if (x instanceof $) return 'jquery';
+    if (x instanceof jQuery) return 'jquery';
     return false;
 } // getType
 
@@ -465,7 +513,7 @@ function isFolder(it) {
         return true;
     }
     it = asItem(it);
-    return it && it.itemKind.endsWith('folder');
+    return it && it.itemKind==='folder';
 } // isFolder
 
 function isRoot(it) { return asItem(it).isRoot }
@@ -697,7 +745,7 @@ function addItemUnder(under, item, position) {
         position = 'sorted';
     under = asLI(under);
     if (under.hasClass('deleted-items')
-    && typeof item == 'string') { // automatic construction of the special item
+    && isString(item)) { // automatic construction of the special item
         item = {
             deleted: true,
             itemKind: item.endsWith('/') ? 'folder' : 'file',
@@ -705,6 +753,8 @@ function addItemUnder(under, item, position) {
             name: item.excludeTrailing('/')
         };
     }
+    if (item && !isString(item))
+        item = asItem(item);
 
     // the UL element is the place for children, have one or create it
     var x = under.children('ul'); 
