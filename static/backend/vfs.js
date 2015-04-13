@@ -21,6 +21,8 @@ tpl.loader = "<img src='/~/pics/loader.gif' class='near-text loader' />";
 
 tpl._remap('$(A)'); // precompile, so we clone, no parsing
 
+var vfsClipboard;
+
 $(function(){
 
     tpl.item.clone().addClass('item').attr('id','root').appendTo($('<ul>').appendTo('#vfs')); // create the root element
@@ -323,7 +325,10 @@ function toggleExpanded(li) {
 function eventHandler_vfs_keydown(ev) {
     var sel = getFirstSelected();  
     var go;
-    switch (ev.keyCode) {
+    var k = ev.keyCode;
+    if (k >= 65 && k <= 90)
+        k = String.fromCharCode(k);
+    switch (k) {
         case 38: // up
             go = sel.prev();
             if (go.length) break;
@@ -381,6 +386,14 @@ function eventHandler_vfs_keydown(ev) {
             break;
         case 46: // delete
             deleteItem();
+            break;
+        case 'X':
+            if (ev.ctrlKey)
+                vfsClipboard = sel;
+            break;
+        case 'V':
+            if (ev.ctrlKey && vfsClipboard)
+                moveItem(vfsClipboard, sel);
             break;
         default:
             //log(ev.keyCode); 
