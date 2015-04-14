@@ -76,3 +76,6 @@ exports.log = function(){
     return a[a.length-1];
 }; // log
 
+exports.between = function(min,v,max) {
+    return v >= min && v <= max;
+};//between

@@ -96,6 +96,14 @@ $(function(){
     $('#deleteItem').click(deleteItem);
     $('#save').click(save);
     makeItFileSelector('#load', load);
+
+    $('body').keydown(function(ev){
+        if (!ev.target.tagName.up()._among('BODY','BUTTON','A')) return; // these kinds of element should not interfere with the VFS controls
+        if (vfsKeydown(ev) === false) { // it can decide to interrupt the event handling
+            ev.stopImmediatePropagation();
+            return false;
+        }
+    });
 });
 
 function makeItFileSelector(el, cb) {
@@ -322,11 +330,25 @@ function toggleExpanded(li) {
     isExpanded(li) ? setExpanded(li, false) : expandAndLoad(li);
 } // toggleExpanded
 
-function eventHandler_vfs_keydown(ev) {
-    var sel = getFirstSelected();  
+function virtualFocusEventHandler(ev) {
+    // there's a couple of possible event handlers to be called
+    var v = 'eventHandler_vfs';
+    var fns = [v+'_'+ev.type, v];
+
+    for (var i=0, l=fns.length; i<l; ++i) {
+        var fn = window[fns[i]]; // try to get it
+        if (typeof fn == 'function') { // if it exists, run it
+            if (fn(ev) === false) return false; // it can decide to interrupt the event handling
+        }
+    }
+} // virtualFocusEventHandler
+
+function vfsKeydown(ev) {
     var go;
+    var sel = getFirstSelected();
+    // letter keys
     var k = ev.keyCode;
-    if (k >= 65 && k <= 90)
+    if (between(65,k,90) || between(48,k,57)) // alphanumeric
         k = String.fromCharCode(k);
     switch (k) {
         case 38: // up
@@ -404,7 +426,7 @@ function eventHandler_vfs_keydown(ev) {
         vfsSelect(go);
     }
     return false;
-} // eventHandler_vfs_keydown
+} // vfsKeydown
 
 function vfsSelect(el) {
     $('#vfs .selected').removeClass('selected');
