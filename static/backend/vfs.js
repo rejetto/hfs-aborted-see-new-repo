@@ -551,7 +551,7 @@ function isFolder(it) {
     return it && it.itemKind==='folder';
 } // isFolder
 
-function isRoot(it) { return asItem(it).isRoot }
+function isRoot(it) { return tryGet(asItem(it), 'isRoot') }
 
 function isExpanded(x) { return asLI(x).hasClass('expanded') }
 
