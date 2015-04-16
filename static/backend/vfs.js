@@ -90,26 +90,19 @@ $(function(){
         }
     }, '.expansion-button');
     $('#vfs').hover(showExpansionButtons, hideExpansionButtons);
+    $('#vfs').keydown(vfsKeydown);
     $('#bindItem').click(bindItem);
     $('#addItem').click(addItem);
     $('#renameItem').click(renameItem);
     $('#deleteItem').click(deleteItem);
     $('#save').click(save);
     makeItFileSelector('#load', load);
-
-    $('body').keydown(function(ev){
-        if (!ev.target.tagName.up()._among('BODY','BUTTON','A')) return; // these kinds of element should not interfere with the VFS controls
-        if (vfsKeydown(ev) === false) { // it can decide to interrupt the event handling
-            ev.stopImmediatePropagation();
-            return false;
-        }
-    });
 });
 
 function makeItFileSelector(el, cb) {
     el = $(el);
     // cover the real button to intercept the click
-    var f = $('<input type="file">').css({ position:'absolute', opacity:0.001 }).sameSize(el).insertBefore(el);
+    var f = $('<input type="file" tabindex="-1">').css({ position:'absolute', opacity:0.001 }).sameSize(el).insertBefore(el);
 
     f.change(function(){
         if (!this.files.length) return;
@@ -329,19 +322,6 @@ function showExpansionButtons(state /** optional */) {
 function toggleExpanded(li) {
     isExpanded(li) ? setExpanded(li, false) : expandAndLoad(li);
 } // toggleExpanded
-
-function virtualFocusEventHandler(ev) {
-    // there's a couple of possible event handlers to be called
-    var v = 'eventHandler_vfs';
-    var fns = [v+'_'+ev.type, v];
-
-    for (var i=0, l=fns.length; i<l; ++i) {
-        var fn = window[fns[i]]; // try to get it
-        if (typeof fn == 'function') { // if it exists, run it
-            if (fn(ev) === false) return false; // it can decide to interrupt the event handling
-        }
-    }
-} // virtualFocusEventHandler
 
 function vfsKeydown(ev) {
     var go;
