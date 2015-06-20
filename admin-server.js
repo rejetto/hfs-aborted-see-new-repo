@@ -131,13 +131,16 @@ var sockets = serving.sockets(srv, {
             if ('name' in data)
                 fnode.name = data.name;
             async.series([
-                function(doneThis){
+                function(pathSet){
                     if ('resource' in data)
                         return fnode.setPath(data.resource, function(err){
                             serving.ioError(cb, err && choose(err.code,{ ENOENT:'resource not found' },err.code))
-                            || doneThis();
+                            || pathSet();
                         });
-                    doneThis();
+                    pathSet();
+                },
+                function(overlapRefreshed){
+                    fnode.refreshOverlapping(overlapRefreshed);
                 },
                 function(){
                     serving.ioOk(cb, { item:nodeToObjectForStreaming(fnode) });

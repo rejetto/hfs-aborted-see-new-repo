@@ -194,7 +194,10 @@ function renameItem() {
             }
             var will = result.item;
             treatFileData(will);
-            addItemUnder(getParent(it), will); // update GUI
+            var where = getParent(it);
+            if (will.overlapping)
+                asLI(getItemFromURI(will.name, where)).remove(); // remove overlapped one
+            addItemUnder(where, will); // update GUI
             $(it.element).remove();
             vfsSelect(will);
         });
