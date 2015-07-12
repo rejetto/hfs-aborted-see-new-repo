@@ -1,12 +1,14 @@
 body { font:10pt verdana, arial, sans-serif; }
 a img { border:0; } /* conform IE */
 #vfs { -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
-#vfs { display:inline-block; } /* when a node is selected, it's nicer to see the highlighting span for the minimum necessary width instead of whole screen */
-#vfs ul { list-style:none; padding:0; }
+#vfs:focus { outline-color: rgba(77,144,254,0.3); }
+#vfs { display:inline-block; margin-top:1em; } /* when a node is selected, it's nicer to see the highlighting span for the minimum necessary width instead of whole screen */
+#vfs ul { list-style:none; padding:0; margin:0; }
 #vfs ul ul { list-style:none; padding-left:3em; }
 #vfs li { border:2px solid transparent; }
 #vfs li>.item-row { padding:0.1em 0.2em; }
-#vfs li.selected { border-color:#99f; background:#fafaff; }
+#vfs li.selected { background:#fafaff; }
+#vfs li.selected:focus { border-color:#99f; }
 #vfs li.target { border-color:#9f0; }
 #vfs li.selected>.item-row { background:#ddf; }
 #vfs .expansion-button { margin-right:0em; cursor:pointer; display:inline-block; width:1em; }
