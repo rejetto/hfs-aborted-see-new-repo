@@ -233,7 +233,10 @@ var sockets = serving.sockets(srv, {
                 function done(item){
                     item.refreshOverlapping(function(){
                         vfs.fromUrl(data.from, function(updatedFrom){
-                            serving.ioOk(cb, { from:updatedFrom||null, to:nodeToObjectForStreaming(item) });
+                            serving.ioOk(cb, {
+                                wasOverlapped:nodeToObjectForStreaming(updatedFrom)||null, // sometimes moving a file reveals the overlapped one
+                                to:nodeToObjectForStreaming(item)
+                            });
                         });
                         notifyVfsChange(socket, originalSourceFolder);
                         notifyVfsChange(socket, data.from);

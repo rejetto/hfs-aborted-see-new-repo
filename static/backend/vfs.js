@@ -166,7 +166,7 @@ function moveItem(what, where) {
     sendCommand('vfs.move', { from:getURI(what), to:getURI(where) }, function(result){
         if (!result.ok)
             return msgBox(result.error);
-        var v = result.from;
+        var v = result.wasOverlapped; // if this is present, then it is a node that is no more overlapped by the one we moved
         if (v) {
             treatFileData(v);
             addItemUnder(getParent(what), v);
