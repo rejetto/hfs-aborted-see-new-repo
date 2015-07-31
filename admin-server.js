@@ -144,7 +144,7 @@ var sockets = serving.sockets(srv, {
                 },
                 function(){
                     serving.ioOk(cb, { item:nodeToObjectForStreaming(fnode) });
-                    notifyVfsChange(socket, fnode.getURI().excludeTrailing('/'));
+                    notifyVfsChange(socket, fnode.getURI(true));
                 }
             ]);
         });
@@ -171,7 +171,7 @@ var sockets = serving.sockets(srv, {
             }            
             fnode.add(data.resource, function(err, newNode){
                 serving.ioOk(cb, {item:nodeToObjectForStreaming(newNode)});
-                notifyVfsChange(socket, newNode.getURI().excludeTrailing('/'));
+                notifyVfsChange(socket, newNode.getURI(true));
             });  
         });
     },
@@ -217,7 +217,7 @@ var sockets = serving.sockets(srv, {
                     : destination.getChildByName(source.name) ? 'already exists'
                     : null)) return;
 
-                var originalSourceFolder = source.getURI().excludeTrailing('/').split('/').slice(0,-1).join('/')+'/'; // one level above
+                var originalSourceFolder = source.getURI(true).split('/').slice(0,-1).join('/')+'/'; // one level above
 
                 if (source.isFixed()) {
                     source.parent = destination;
