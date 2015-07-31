@@ -540,13 +540,13 @@ function isExpanded(x) { return asLI(x).hasClass('expanded') }
 
 function isDeleted(x) { return asLI(x).parent().closest('.deleted-items').length }
 
-function getURI(item) {
+function getURI(item, encode) {
     item = asItem(item);
     if (!item) return false;
     if (isRoot(item)) return '/';
     var p = getParent(item);
     return (p ? getURI(p) : '') // recursion
-        + encodeURI(item.name)
+        + (encode ? encodeURI(item.name) : item.name)
         + (p && isFolder(item) ? '/' : '');
 } // getURI
 
