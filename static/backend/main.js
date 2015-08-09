@@ -55,7 +55,7 @@ function inputBox() {
     cb(prompt(text, def));
 } // inputBox
 
-function msgBox(message) { alert(message) }
+function displayError(message) { alert("ERROR: "+message) }
 
 function confirmBox(message) { return confirm(message) }
 

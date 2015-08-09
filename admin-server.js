@@ -140,7 +140,7 @@ var sockets = serving.sockets(srv, {
                     pathSet();
                 },
                 function(overlapRefreshed){
-                    fnode.refreshOverlapping(overlapRefreshed);
+                    fnode.checkOverlapping(overlapRefreshed);
                 },
                 function(){
                     serving.ioOk(cb, { item:nodeToObjectForStreaming(fnode) });
@@ -219,7 +219,8 @@ var sockets = serving.sockets(srv, {
 
                 var originalSourceFolder = source.getURI(true).split('/').slice(0,-1).join('/')+'/'; // one level above
 
-                if (source.isFixed()) {
+                if (source.isFixed()
+                && path.dirname(source.resource) !== destination.resource) { // we must exclude from this kind of treatment the case where source is a previously moved child of destination
                     source.parent = destination;
                     return done(source);
                 }
@@ -231,7 +232,7 @@ var sockets = serving.sockets(srv, {
                 });
 
                 function done(item){
-                    item.refreshOverlapping(function(){
+                    item.checkOverlapping(function(){
                         vfs.fromUrl(data.from, function(updatedFrom){
                             serving.ioOk(cb, {
                                 wasOverlapped:nodeToObjectForStreaming(updatedFrom)||null, // sometimes moving a file reveals the overlapped one

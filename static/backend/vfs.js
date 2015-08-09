@@ -154,18 +154,18 @@ function bindItem() {
     if (!it) return;
     inputBox('Enter path', function(s){
         if (!s) return;
-        sendCommand('vfs.set', { uri:getURI(it), resource:s }, function(result){
+        sendCommand('vfs.set', { uri:asURI(it), resource:s }, function(result){
             result.ok
                 ? reloadVFS(it)
-                : msgBox(result.error);
+                : displayError(result.error);
         });
     });
 } // bindItem
 
 function moveItem(what, where) {
-    sendCommand('vfs.move', { from:getURI(what), to:getURI(where) }, function(result){
+    sendCommand('vfs.move', { from:asURI(what), to:asURI(where) }, function(result){
         if (!result.ok)
-            return msgBox(result.error);
+            return displayError(result.error);
         var v = result.wasOverlapped; // if this is present, then it is a node that is no more overlapped by the one we moved
         if (v) {
             treatFileData(v);
@@ -177,6 +177,9 @@ function moveItem(what, where) {
         if (v.overlapping)
             asLI(getItemFromURI(v.name, where)).remove(); // remove overlapped one
         addItemUnder(where, v);
+        if (v.nodeKind.endsWith('temp')) { // this is a dynamic element, was actually restored from the "deleted" list
+            updateDeletedItems(where, { removing:v.name });
+        }
     });
 }//moveItem
 
@@ -187,9 +190,9 @@ function renameItem() {
         if (!isString(s)) return; // canceled
         s = $.trim(s);
         if (s == it.name) return; // no change
-        sendCommand('vfs.set', { uri:getURI(it), name:s }, function(result){
+        sendCommand('vfs.set', { uri:asURI(it), name:s }, function(result){
             if (!result.ok) {
-                msgBox(result.error);
+                displayError(result.error);
                 return;
             }
             var will = result.item;
@@ -225,13 +228,13 @@ function deleteItem() {
     li.attr('deleting',1).fadeTo(100, 0.5); // mark it visually and at DOM level  
     vfsSelectNearby(li); // renew selection
     // server, please do it
-    sendCommand('vfs.delete', { uri:getURI(it) }, function(result){
+    sendCommand('vfs.delete', { uri:asURI(it) }, function(result){
         if (!result.ok) { // something went wrong
             // ugh, forget it.... (unmark)
             it.deleting = false;
             li.removeAttr('deleting').fadeIn(100);
             // let the user know
-            msgBox(result.error);
+            displayError(result.error);
             return;
         }
         // if this number has changed, then we need to do a little extra work: the item became a deleted item.
@@ -260,7 +263,7 @@ function restoreItem(it) {
     var li = $(it.element); 
     var folder = li.closest('li.item');
     vfsSelectNearby(li);
-    sendCommand('vfs.restore', { uri:getURI(folder), resource:it.name }, function(result){
+    sendCommand('vfs.restore', { uri:asURI(folder), resource:it.name }, function(result){
         if (!result.ok) return;
         // do the job locally: remove the element from the array
         removeFromDeletedItems(asItem(folder), it.name);
@@ -275,7 +278,7 @@ function restoreItem(it) {
 function restoreAllItems(li) {
     assert(li, 'li');
     li = li.closest('li.item');
-    sendCommand('vfs.restore', { uri:getURI(li), resource:'*' }, function(result){
+    sendCommand('vfs.restore', { uri:asURI(li), resource:'*' }, function(result){
         if (!result.ok) return;
         reloadVFS(li);
     });    
@@ -285,12 +288,12 @@ function addItem() {
     var it = getFirstSelectedFolder() || asItem(getRoot());
     inputBox('Enter name or path (you need to be on the server machine)', function(s){
         if (!s) return;
-        sendCommand('vfs.add', { uri:getURI(it), resource:s }, function(result){
+        sendCommand('vfs.add', { uri:asURI(it), resource:s }, function(result){
             if (!result.ok) {
-                msgBox(result.error);
+                displayError(result.error);
                 return;
             }
-            if (result.item.nodeKind === 'temp') { // this is a dynamic element, was actually restored from the "deleted" list
+            if (result.item.nodeKind.endsWith('temp')) { // this is a dynamic element, was actually restored from the "deleted" list
                 updateDeletedItems(it, { removing:basename(s) });
             }
             setExpanded(it);
@@ -490,6 +493,7 @@ function getLastChild(parent) {
 /** determine the type of the element */
 function getType(x) {
     if (!x) return false;
+    if (isString(x)) return 'uri';
     if ('itemKind' in x) return 'item';
     if (x instanceof HTMLElement) return 'html';
     if (x instanceof jQuery) return 'jquery';
@@ -504,18 +508,27 @@ function toType(to, x) {
     switch (from) {
         case false:
             return (to == 'jquery') ? $('') : false;
+        case 'uri':
+            x = getItemFromURI(x); // ...and now be treated below
+            if (to === 'item') return x;
         case 'item':
-            if (to == 'html') return x.element;
-            // to == 'jquery'
-            return $(x.element);
+            if (to === 'html')
+                return x.element;
+            if (to == 'jquery')
+                return $(x.element);
+            // to === 'uri'
+            if (isRoot(x)) return '/';
+            var p = getParent(x);
+            return (p ? toType('uri',p) : '') // recursion
+                + x.name
+                + (p && isFolder(x) ? '/' : '');
         case 'html':
-            if (to == 'jquery') return $(x).closest('li');
-            // to == 'item'
-            return $(x).closest('li').data('item');
+            if (to === 'jquery') return $(x).closest('li');
+            x = $(x).closest('li')
         case 'jquery':
-            if (to == 'html') return x[0];
-            // to == 'item'
-            return x.data('item');
+            if (to === 'html') return x[0];
+            x = x.data('item');
+            return (to == 'item') ? x : toType(to,x); // for 'uri'
         default:
             assert('unsupported type: '+from);
     }
@@ -540,15 +553,7 @@ function isExpanded(x) { return asLI(x).hasClass('expanded') }
 
 function isDeleted(x) { return asLI(x).parent().closest('.deleted-items').length }
 
-function getURI(item, encode) {
-    item = asItem(item);
-    if (!item) return false;
-    if (isRoot(item)) return '/';
-    var p = getParent(item);
-    return (p ? getURI(p) : '') // recursion
-        + (encode ? encodeURI(item.name) : item.name)
-        + (p && isFolder(item) ? '/' : '');
-} // getURI
+function asURI(item) { return toType('uri', item) }
 
 /** get the item from the uri, but only if it's currently in our tree */
 function getItemFromURI(uri, from) {
@@ -592,14 +597,15 @@ function treatFileData(item) {
     item.children.forEach(treatFileData);
 } // treatFileData
 
-function reloadVFS(item, cb) {
+function reloadVFS(item, cb/*err*/) {
     var e = item ? asLI(item) : getRoot();
     var loader = e.find('.label:first .loader');
     if (!loader.length)
         loader = tpl.loader.clone().appendTo( e.find('.label:first') );
-    sendCommand('vfs.get', { uri:item ? getURI(item) : '/', depth:1 }, function(res){
+    sendCommand('vfs.get', { uri:item ? asURI(item) : '/', depth:1 }, function(res){
         try {
-            if (!res || !res.ok) return;
+            if (!res || !res.ok)
+                return cb && cb(res && res.error || 'loading');
             var it = res.item;
             var n = tryGet(it, 'children.length');
             if (n > LOTS_OF_FILE_IN_FOLDER
@@ -670,17 +676,22 @@ function setExpanded(item, state) {
     return true;
 } // setExpanded
 
-function expandAndLoad(li) {
-    if (isDeleted(li)) return false;
+function expandAndLoad(li, cb/*err*/) {
+    if (isDeleted(li)) {
+        cb && cb('deleted');
+        return false;
+    }
     li = asLI(li);
     setExpanded(li);
     if (li.hasClass('item'))
-        return reloadVFS(li);
+        return reloadVFS(li, cb);
     if (li.hasClass('deleted-items')) {
         asItem(getParent(li)).deletedItems.forEach(function(name){            
             addItemUnder(li, name);
         });
     }
+    cb && cb();
+    return li;
 } // expandAndLoad
 
 function bindItemToDOM(item, element) {
@@ -714,7 +725,8 @@ function updateDeletedItems(it, options) {
         it.deletedItems.push(options.adding);
     }
     if (options.removing) {
-        removeFromDeletedItems(it, options.removing);
+        if (!removeFromDeletedItems(it, options.removing))
+            return; // nothing to update
     }
 
     if (!it.deletedItems || !it.deletedItems.length) { // no items?
@@ -821,13 +833,14 @@ function addItemUnder(under, item, position) {
         : el.appendTo(under);
     // do the final setup
     bindItemToDOM(item, el);
-    setExpanded(el, false);    
+    setExpanded(el, false);
 } // addItemUnder
 
 function removeFromDeletedItems(item, name) {
     item = asItem(item);
-    if (!item) return false;
+    if (!item) return;
     var a = item.deletedItems;
+    if (!a) return;
     var i = a.length;
     name = name.excludeTrailing('/');
     while (i--) {
