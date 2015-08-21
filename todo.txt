@@ -3,6 +3,8 @@ improve in-source documentation
     http://en.wikipedia.org/wiki/JSDoc
 
 === NEXT
+BE: select items by typing letters
+BE: one vfs operation at time (block that part of the GUI)
 benchmark on mobile: measure the time it takes to enter a folder, and then show it with an alert
 
 === AFTER

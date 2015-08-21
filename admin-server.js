@@ -91,7 +91,12 @@ function nodeToObjectForStreaming(fnode, depth, cb, isRecurring) {
                 res.children.push(obj);
                 doneThis();
             }, true);
-        }, cb.bind_(res,bads));
+        }, function(err) {
+            assert(!err, 'illegal');
+            if (!res.children.length)
+                delete res.children;
+            cb(res, bads);
+        });
     });
 } // nodeToObjectForStreaming
 
