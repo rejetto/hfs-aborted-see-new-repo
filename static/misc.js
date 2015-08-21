@@ -197,9 +197,6 @@ function dirname(path) {
     return path.substr(0, path.length-basename(path).length);
 } // dirname
 
-/** for now it's only a place-holder. We'll be able to transform data in a way to optimize socket.io communications */  
-function ioData(x) { return x }
-
 // useful when you want to do something only once
 function once(scope) {
     scope = scope || 'global';

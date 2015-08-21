@@ -79,3 +79,7 @@ exports.log = function(){
 exports.between = function(min,v,max) {
     return v >= min && v <= max;
 };//between
+
+/** for now it's only a place-holder. We'll be able to transform data in a way to optimize socket.io communications */
+exports.ioData = exports.idFun;
+
