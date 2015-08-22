@@ -167,7 +167,14 @@ function bindItem() {
     });
 } // bindItem
 
+function isTemp(it) {
+    if (!('nodeKind' in it))
+        it = asItem(it);
+    return it.nodeKind.endsWith('temp');
+}//isTemp
+
 function moveItem(what, where) {
+    var wasTemp = isTemp(what);
     sendCommand('vfs.move', { from:asURI(what), to:asURI(where) }, function(result){
         if (!result.ok)
             return displayError(result.error);
@@ -176,13 +183,15 @@ function moveItem(what, where) {
             treatFileData(v);
             addItemUnder(getParent(what), v);
         }
-        asLI(what).remove();
         treatFileData(v=result.to);
+        if (wasTemp)
+            updateDeletedItems(getParent(what), { adding:v.name });
+        asLI(what).remove();
         if (!isExpanded(where)) return;
         if (v.overlapping)
             asLI(getItemFromURI(v.name, where)).remove(); // remove overlapped one
         addItemUnder(where, v);
-        if (v.nodeKind.endsWith('temp')) { // this is a dynamic element, was actually restored from the "deleted" list
+        if (isTemp(v)) { // this is a dynamic element, was actually restored from the "deleted" list
             updateDeletedItems(where, { removing:v.name });
         }
     });
