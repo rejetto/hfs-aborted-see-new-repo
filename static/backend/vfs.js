@@ -186,7 +186,7 @@ function moveItem(what, where) {
         treatFileData(v=result.to);
         if (wasTemp)
             updateDeletedItems(getParent(what), { adding:v.name });
-        asLI(what).remove();
+        removeTreeItem(what);
         if (!isExpanded(where)) return;
         if (v.overlapping)
             asLI(getItemFromURI(v.name, where)).remove(); // remove overlapped one
