@@ -17,7 +17,7 @@ a img { border:0; } /* conform IE */
 
 #num-items { min-width:3em; display: inline-block; font-weight:bold; }
 
-.full-label { position:absolute; padding-right:1em; text-align:left; }
+.full-label { position:absolute; padding-right:1em; text-align:left; background-color:#eee;  }
 
 /*  tiles */
 [mode=tiles] #items li { display:inline-block; } /* without this, the LI has height:0 */
@@ -35,7 +35,7 @@ a img { border:0; } /* conform IE */
 [mode=tiles] .item-label { display:block; padding:0 0.5em; margin:3px; word-wrap:break-word; }
 [mode=tiles] .item-details { display:none; }
 [mode=tiles] .item-details-wrapper { position:absolute; background:#ffe; border:1px solid #eec; padding:0.2em 0.4em; }
-[mode=tiles].hover .full-label { max-width:17em; border-right:1px solid #bbb; }
+[mode=tiles] .full-label { max-width:17em; border:1px solid #bbb; padding:0.2em 0.5em; }
 
 /*  list */ 
 [mode=list] li { border-bottom:1px solid #eee; height:1.5em; }
