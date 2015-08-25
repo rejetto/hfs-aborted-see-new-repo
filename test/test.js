@@ -1,12 +1,12 @@
+var URL = 'http://127.0.0.1:88';
 var assert = require("assert");
 var fs = require("fs");
 require("../static/extending.js");
 GLOBAL._expand(require('../static/cs-shared'));
-function $(){}
+$=idFun, tpl={};
 var assert = require("../static/backend/vfs.js");
 var io = require('socket.io-client');
 describe('Admin server', function(){
-    var URL = 'http://127.0.0.1:88';
     var c;
     it('should accept connections', function(done) {
         c = io(URL, { timeout:500 });

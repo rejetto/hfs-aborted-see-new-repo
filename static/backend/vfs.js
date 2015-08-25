@@ -4,11 +4,6 @@
 
 LOTS_OF_FILE_IN_FOLDER = 1000;
 
-if (typeof tpl==='undefined')
-    tpl = {};
-if (typeof $==='undefined')
-    $=idFun;
-
 tpl.item = "<li draggable='true'>"
     +"<div class='item-row'><span class='expansion-button'></span><span class='icon'></span><span class='label'></span></div>"
     +"</li>";
