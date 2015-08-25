@@ -12,8 +12,10 @@ a img { border:0; } /* conform IE */
     color: #777;
     line-height: 2em;
 }
-#folder { font-size:1.6em; font-weight:bold; word-break:break-all; display:block !important; }
-#folder img { height:1em; vertical-align:text-bottom; }
+#folder { font-size:1.6em; font-weight:bold; word-break:break-all; display:block !important; padding-left:0.5em !important; }
+#folder img { height:1em; padding: 0 0.1em; }
+#folder a { text-decoration:none; }
+#folder a:hover { text-decoration:underline; }
 
 #num-items { min-width:3em; display: inline-block; font-weight:bold; }
 
