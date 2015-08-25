@@ -1,19 +1,19 @@
 body { font:10pt verdana, arial, sans-serif; }
 a img { border:0; } /* conform IE */
 
-#items { list-style:none; padding:0; margin-top:0.5em; }
-#folder { font-size:1.6em; font-weight:bold; word-break:break-all; }
-#folder img { height:1em; vertical-align:text-bottom; }
-#view-settings { display: inline; }
-#folder-info , #view-settings>div {
+#items { list-style:none; padding:0; margin-top:1em; }
+#control-tiles { display: inline; }
+#control-tiles > div {
     display:inline-block;
     border-left: 5px solid #bbb;
     background-color: #eee;
     padding: 0.3em 1em;
-    margin: 0.5em 0;
+    margin: 0.1em 0;
     color: #777;
     line-height: 2em;
 }
+#folder { font-size:1.6em; font-weight:bold; word-break:break-all; display:block !important; }
+#folder img { height:1em; vertical-align:text-bottom; }
 
 #num-items { min-width:3em; display: inline-block; font-weight:bold; }
 
