@@ -8,10 +8,10 @@ TPL.item =
     +"</div></div>";
     
 TPL.list_onObjectItem = function(item) {
-    item.size = item.size ? formatBytes(item.size)+'B' : 'folder';
+    item.size = item.size ? formatBytes(item.size) : 'folder';
 };
 
 TPL.tiles_onObjectItem = function(item) {
     item.type = 'Type: '+item.type;
-    item.size = item.size ? 'Size: '+formatBytes(item.size)+'B' : '';
+    item.size = item.size ? 'Size: '+formatBytes(item.size) : '';
 };
